@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,6 +121,9 @@ public class ProfileService {
             || profile.cidade() != null
             || profile.cep() != null);
 
+    rejectOrphanUploadId(
+        profile.identityUploadId(), profile.cpf() != null, "identityUploadId", "cpf");
+
     List<String> pending = new ArrayList<>();
 
     if (profile.cpf() != null) {
@@ -133,6 +137,11 @@ public class ProfileService {
     }
 
     boolean vehicleFieldsChanged = profile.vehicleType() != null || profile.vehiclePlate() != null;
+    rejectOrphanUploadId(
+        profile.vehicleUploadId(),
+        vehicleFieldsChanged,
+        "vehicleUploadId",
+        "vehicleType\"/\"vehiclePlate");
     if (vehicleFieldsChanged) {
       validateVerificationUpload(
           profile.vehicleUploadId(), usuario.getId(), TIPO_DOCUMENTO_VEICULO, "vehicleUploadId");
@@ -156,6 +165,8 @@ public class ProfileService {
             || profile.vehicleType() != null
             || profile.vehiclePlate() != null
             || profile.vehicleUploadId() != null);
+
+    rejectOrphanUploadId(profile.cnpjUploadId(), profile.cnpj() != null, "cnpjUploadId", "cnpj");
 
     Estabelecimento estabelecimento = requireEstabelecimento(usuario);
     List<String> pending = new ArrayList<>();
@@ -194,6 +205,24 @@ public class ProfileService {
   }
 
   /**
+   * Um {@code uploadId} só faz sentido junto do valor que ele comprova — sem isso, ficaria um
+   * upload "gasto" silenciosamente sem nenhum campo realmente entrando em análise, e o cliente não
+   * teria como saber que nada aconteceu.
+   */
+  private void rejectOrphanUploadId(
+      UUID uploadId, boolean pairedValuePresent, String uploadFieldName, String valueFieldName) {
+    if (uploadId != null && !pairedValuePresent) {
+      throw new BadRequestException(
+          "UNEXPECTED_FIELD",
+          "\""
+              + uploadFieldName
+              + "\" foi enviado sem \""
+              + valueFieldName
+              + "\", que é o campo que ele deveria comprovar.");
+    }
+  }
+
+  /**
    * Campo verificado só aplica com uma prova pronta e do próprio usuário (RF-04.3) — sem isso, a
    * edição é rejeitada antes de qualquer escrita; não existe "pendente sem prova nenhuma"
    * (api/uploads.md: upload pertence a um único recurso, por isso a checagem de reuso aqui também).
@@ -227,9 +256,21 @@ public class ProfileService {
     }
   }
 
+  /**
+   * {@code saveAndFlush} + captura de {@link DataIntegrityViolationException} de propósito: a
+   * checagem de {@code existsByUploadId} em {@link #validateVerificationUpload} previne o caso
+   * comum, mas duas requisições concorrentes reusando o mesmo upload correm até aqui — é a UNIQUE
+   * do banco (V13) quem decide de verdade, e sem isso a violação vazaria como 500 em vez do 409 que
+   * a checagem prévia já dá.
+   */
   private void createPendingDocument(UUID usuarioId, String tipo, UUID uploadId) {
-    documentoCadastroRepository.save(
-        new DocumentoCadastro(UuidV7.next(), usuarioId, tipo, uploadId));
+    try {
+      documentoCadastroRepository.saveAndFlush(
+          new DocumentoCadastro(UuidV7.next(), usuarioId, tipo, uploadId));
+    } catch (DataIntegrityViolationException e) {
+      throw new ConflictException(
+          "UPLOAD_ALREADY_USED", "Este upload já foi usado em outro documento de cadastro.");
+    }
   }
 
   private MeResponse buildResponse(Usuario usuario, List<String> pendingFields) {

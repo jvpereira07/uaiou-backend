@@ -98,13 +98,28 @@ public class Estabelecimento {
     this.logoObjectKey = logoObjectKey;
   }
 
-  /** Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. */
+  /**
+   * Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. Cada parte do endereço
+   * só é sobrescrita se vier não-nula: PATCH /me manda o grupo inteiro por conveniência do cliente,
+   * mas manter a semântica "só aplica o que veio" por campo evita que editar só o CEP apague
+   * bairro/rua/número/cidade.
+   */
   public void atualizarEndereco(
       String bairro, String rua, String numero, String cidade, String cep) {
-    this.bairro = bairro;
-    this.rua = rua;
-    this.numero = numero;
-    this.cidade = cidade;
-    this.cep = cep;
+    if (bairro != null) {
+      this.bairro = bairro;
+    }
+    if (rua != null) {
+      this.rua = rua;
+    }
+    if (numero != null) {
+      this.numero = numero;
+    }
+    if (cidade != null) {
+      this.cidade = cidade;
+    }
+    if (cep != null) {
+      this.cep = cep;
+    }
   }
 }

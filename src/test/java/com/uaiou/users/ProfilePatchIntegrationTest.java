@@ -327,6 +327,79 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(address.cidade()).isEqualTo("Belo Horizonte");
   }
 
+  @Test
+  void editingOnlyOneAddressFieldPreservesTheOthers() {
+    RegisteredTestUser user = registerAndActivateMerchant();
+    String accessToken = login(user).accessToken();
+    patchMe(
+        accessToken,
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "Centro",
+                "Rua das Flores",
+                "100",
+                "Belo Horizonte",
+                "30130000")));
+
+    // Só o CEP muda desta vez — bairro/rua/número/cidade não foram enviados e precisam permanecer.
+    ResponseEntity<MeResponse> response =
+        patchMe(
+            accessToken,
+            new PatchMeRequest(
+                null,
+                null,
+                new PatchMeProfile(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "30140000")));
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    Address address = response.getBody().profile().address();
+    assertThat(address.cep()).isEqualTo("30140000");
+    assertThat(address.bairro()).isEqualTo("Centro");
+    assertThat(address.rua()).isEqualTo("Rua das Flores");
+    assertThat(address.numero()).isEqualTo("100");
+    assertThat(address.cidade()).isEqualTo("Belo Horizonte");
+  }
+
+  @Test
+  void vehicleUploadIdWithoutAVehicleFieldIsRejected() {
+    RegisteredTestUser user = registerAndActivateCourier();
+    String accessToken = login(user).accessToken();
+    UUID uploadId = uploads.createReadyUpload(user.id(), "documento_veiculo");
+
+    PatchMeRequest request =
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null, null, null, null, uploadId, null, null, null, null, null, null, null, null));
+    ResponseEntity<ErrorResponse> response = patchMeExpectingError(accessToken, request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().error().code()).isEqualTo("UNEXPECTED_FIELD");
+  }
+
   private ResponseEntity<MeResponse> getMe(String accessToken) {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
