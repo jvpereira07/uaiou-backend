@@ -6,6 +6,7 @@ import com.uaiou.auth.dto.RegisterProfile;
 import com.uaiou.auth.dto.RegisterRequest;
 import com.uaiou.auth.dto.RegisterResponse;
 import com.uaiou.shared.error.ErrorResponse;
+import com.uaiou.support.AbstractAuthIntegrationTest;
 import com.uaiou.users.Role;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.repository.UsuarioRepository;

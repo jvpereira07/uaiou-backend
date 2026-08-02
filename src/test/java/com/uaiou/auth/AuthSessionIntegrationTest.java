@@ -7,6 +7,7 @@ import com.uaiou.auth.dto.SessionResponse;
 import com.uaiou.auth.service.JwtService;
 import com.uaiou.auth.web.AuthenticatedUser;
 import com.uaiou.shared.error.ErrorResponse;
+import com.uaiou.support.AbstractAuthIntegrationTest;
 import com.uaiou.users.Role;
 import com.uaiou.users.UserStatus;
 import java.time.Instant;

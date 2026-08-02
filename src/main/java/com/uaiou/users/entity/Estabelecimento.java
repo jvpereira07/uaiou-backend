@@ -28,6 +28,19 @@ public class Estabelecimento {
   @Column(name = "nome_fantasia")
   private String nomeFantasia;
 
+  @Column(name = "logo_object_key")
+  private String logoObjectKey;
+
+  private String bairro;
+
+  private String rua;
+
+  private String numero;
+
+  private String cidade;
+
+  private String cep;
+
   private BigDecimal score;
 
   protected Estabelecimento() {
@@ -50,5 +63,48 @@ public class Estabelecimento {
 
   public String getNomeFantasia() {
     return nomeFantasia;
+  }
+
+  public String getLogoObjectKey() {
+    return logoObjectKey;
+  }
+
+  public String getBairro() {
+    return bairro;
+  }
+
+  public String getRua() {
+    return rua;
+  }
+
+  public String getNumero() {
+    return numero;
+  }
+
+  public String getCidade() {
+    return cidade;
+  }
+
+  public String getCep() {
+    return cep;
+  }
+
+  public BigDecimal getScore() {
+    return score;
+  }
+
+  /** Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. */
+  public void atualizarLogo(String logoObjectKey) {
+    this.logoObjectKey = logoObjectKey;
+  }
+
+  /** Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. */
+  public void atualizarEndereco(
+      String bairro, String rua, String numero, String cidade, String cep) {
+    this.bairro = bairro;
+    this.rua = rua;
+    this.numero = numero;
+    this.cidade = cidade;
+    this.cep = cep;
   }
 }

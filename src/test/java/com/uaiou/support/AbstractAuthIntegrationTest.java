@@ -1,12 +1,10 @@
-package com.uaiou.auth;
+package com.uaiou.support;
 
 import com.uaiou.auth.dto.RegisterProfile;
 import com.uaiou.auth.dto.RegisterRequest;
 import com.uaiou.auth.dto.RegisterResponse;
 import com.uaiou.auth.dto.SessionRequest;
 import com.uaiou.auth.dto.SessionResponse;
-import com.uaiou.support.AbstractIntegrationTest;
-import com.uaiou.support.UserModerationTestFixtures;
 import com.uaiou.users.Role;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -14,11 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 /**
- * Fixtures compartilhadas pelos testes de integração de T-03: registrar e (quando o cenário exige)
- * ativar um entregador/estabelecimento de teste, e logar com ele. Ativação passa por SQL direto
- * ({@link UserModerationTestFixtures}) porque a rota de aprovação de cadastro é do T-07.
+ * Fixtures compartilhadas por testes de integração de qualquer módulo que precise de um entregador/
+ * estabelecimento de teste, registrado e (quando o cenário exige) ativado, com sessão válida.
+ * Nasceu em T-03 (autenticação); movida para {@code support} em T-04 porque perfil (`/me`) também
+ * precisa exatamente disso. Ativação passa por SQL direto ({@link UserModerationTestFixtures})
+ * porque a rota de aprovação de cadastro é do T-07.
  */
-abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTest {
+public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTest {
 
   protected static final String DEFAULT_PASSWORD = "senha-forte-o-suficiente";
 

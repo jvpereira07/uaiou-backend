@@ -6,6 +6,7 @@ import com.uaiou.auth.dto.LogoutRequest;
 import com.uaiou.auth.dto.SessionRequest;
 import com.uaiou.auth.dto.SessionResponse;
 import com.uaiou.shared.error.ErrorResponse;
+import com.uaiou.support.AbstractAuthIntegrationTest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;

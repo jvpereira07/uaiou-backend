@@ -71,6 +71,10 @@ public class Entregador {
     return disponivel;
   }
 
+  public BigDecimal getScore() {
+    return score;
+  }
+
   public int getEntregasRealizadas() {
     return entregasRealizadas;
   }

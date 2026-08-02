@@ -9,6 +9,7 @@ import com.uaiou.auth.dto.PasswordResetConfirmation;
 import com.uaiou.auth.dto.PasswordResetRequest;
 import com.uaiou.auth.dto.SessionRequest;
 import com.uaiou.auth.dto.SessionResponse;
+import com.uaiou.support.AbstractAuthIntegrationTest;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

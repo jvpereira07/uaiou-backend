@@ -8,6 +8,7 @@ import com.uaiou.auth.dto.SessionRequest;
 import com.uaiou.auth.dto.SessionResponse;
 import com.uaiou.auth.service.EmailSender;
 import com.uaiou.shared.error.ErrorResponse;
+import com.uaiou.support.AbstractAuthIntegrationTest;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.BeforeEach;

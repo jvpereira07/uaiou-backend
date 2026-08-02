@@ -7,6 +7,7 @@ import com.uaiou.auth.dto.SessionResponse;
 import com.uaiou.auth.service.GoogleIdTokenVerifierPort;
 import com.uaiou.auth.service.GoogleIdentity;
 import com.uaiou.shared.error.ErrorResponse;
+import com.uaiou.support.AbstractAuthIntegrationTest;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

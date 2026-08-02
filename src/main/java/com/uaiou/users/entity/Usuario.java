@@ -38,6 +38,8 @@ public class Usuario {
   @Column(name = "nome_exibicao")
   private String nomeExibicao;
 
+  private String telefone;
+
   private UserStatus status;
 
   @CreationTimestamp
@@ -105,6 +107,10 @@ public class Usuario {
     return nomeExibicao;
   }
 
+  public String getTelefone() {
+    return telefone;
+  }
+
   public UserStatus getStatus() {
     return status;
   }
@@ -116,5 +122,15 @@ public class Usuario {
   /** Usado por {@code PasswordResetService} (RF-03.11). Não há setter genérico de propósito. */
   public void alterarSenha(String novoSenhaHash) {
     this.senhaHash = novoSenhaHash;
+  }
+
+  /** Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. */
+  public void atualizarNomeExibicao(String nomeExibicao) {
+    this.nomeExibicao = nomeExibicao;
+  }
+
+  /** Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. */
+  public void atualizarTelefone(String telefone) {
+    this.telefone = telefone;
   }
 }
