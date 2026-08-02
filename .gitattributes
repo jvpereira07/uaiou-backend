@@ -1,2 +1,5 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+# Spotless (googleJavaFormat) exige LF — sem isto, core.autocrlf=true (comum no Windows) faz o checkout
+# trazer CRLF de volta a cada clone/pull, e "mvn verify" volta a falhar no spotless-check.
+*.java text eol=lf

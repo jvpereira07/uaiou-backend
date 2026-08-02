@@ -40,6 +40,17 @@ public abstract class AbstractIntegrationTest {
     registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("spring.datasource.username", POSTGRES::getUsername);
     registry.add("spring.datasource.password", POSTGRES::getPassword);
+
+    // app.jwt.secret e app.google.client-id (T-03) não têm valor padrão em application.yaml de
+    // propósito —
+    // são segredo/config real, não algo que devesse ter um fallback silencioso em produção. Nos
+    // testes,
+    // fixados aqui pelo mesmo motivo que o datasource: "mvn verify" precisa funcionar sem depender
+    // de
+    // variável de ambiente exportada manualmente antes.
+    registry.add(
+        "app.jwt.secret", () -> "segredo-de-integracao-usado-só-em-teste-nunca-em-producao");
+    registry.add("app.google.client-id", () -> "client-id-de-integracao-usado-só-em-teste");
   }
 
   @LocalServerPort protected int port;

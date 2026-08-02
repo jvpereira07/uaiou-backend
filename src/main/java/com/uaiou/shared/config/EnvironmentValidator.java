@@ -24,7 +24,14 @@ public class EnvironmentValidator
     implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
 
   private static final List<String> REQUIRED_VARIABLES =
-      List.of("DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD");
+      List.of(
+          "DB_HOST",
+          "DB_PORT",
+          "DB_NAME",
+          "DB_USER",
+          "DB_PASSWORD",
+          "JWT_SECRET",
+          "GOOGLE_CLIENT_ID");
 
   @Override
   public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {

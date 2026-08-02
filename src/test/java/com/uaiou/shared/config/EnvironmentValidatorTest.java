@@ -32,7 +32,9 @@ class EnvironmentValidatorTest {
             .withProperty("DB_PORT", "5432")
             .withProperty("DB_NAME", "uaiou")
             .withProperty("DB_USER", "uaiou")
-            .withProperty("DB_PASSWORD", "secret");
+            .withProperty("DB_PASSWORD", "secret")
+            .withProperty("JWT_SECRET", "segredo-de-teste")
+            .withProperty("GOOGLE_CLIENT_ID", "client-id-de-teste");
 
     assertThatNoException().isThrownBy(() -> validator.validate(environment));
   }
@@ -45,7 +47,9 @@ class EnvironmentValidatorTest {
             .withProperty("DB_PORT", "5432")
             .withProperty("DB_NAME", "uaiou")
             .withProperty("DB_USER", "uaiou")
-            .withProperty("DB_PASSWORD", "secret");
+            .withProperty("DB_PASSWORD", "secret")
+            .withProperty("JWT_SECRET", "segredo-de-teste")
+            .withProperty("GOOGLE_CLIENT_ID", "client-id-de-teste");
 
     assertThatThrownBy(() -> validator.validate(environment)).hasMessageContaining("DB_HOST");
   }
