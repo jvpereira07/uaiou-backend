@@ -1,0 +1,9 @@
+# Perfil ativado pelos testes de integração (@ActiveProfiles("test")).
+#
+# Deliberadamente quase vazio: o Testcontainers injeta spring.datasource.* dinamicamente via @ServiceConnection,
+# então não há nada de conexão para configurar aqui. A existência deste perfil também desativa o
+# EnvironmentValidator (com.uaiou.shared.config.EnvironmentValidator) — os testes não têm (nem devem ter) as
+# variáveis de ambiente DB_* literais no processo.
+spring:
+  flyway:
+    enabled: true

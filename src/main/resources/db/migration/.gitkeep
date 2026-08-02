@@ -1,0 +1,3 @@
+As migrations do schema da v1 são criadas na T-02 (system-documentation/task/T-02-modelo-de-dados-e-migrations.md).
+Este arquivo só existe para versionar a pasta vazia — o nome não bate com o padrão V{n}__descricao.sql,
+então o Flyway o ignora.

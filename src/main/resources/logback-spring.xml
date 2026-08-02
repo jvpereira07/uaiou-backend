@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+        Todo log sai como JSON (RF-01.9): nível, logger, mensagem, timestamp e o contexto do MDC — incluindo
+        "requestId", propagado por com.uaiou.shared.web.CorrelationIdFilter. Nenhum outro campo é adicionado
+        automaticamente: dado sensível nunca aparece aqui porque os filtros de log nunca leem corpo de
+        requisição/resposta (ver RequestLoggingFilter) — não é uma lista de mascaramento que pode ficar
+        desatualizada, é ausência estrutural do dado.
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+            <customFields>{"service":"uaiou-backend"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
