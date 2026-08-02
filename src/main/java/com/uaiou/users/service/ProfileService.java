@@ -44,10 +44,6 @@ public class ProfileService {
 
   private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
-  private static final String TIPO_DOCUMENTO_IDENTIDADE = "documento_identidade";
-  private static final String TIPO_DOCUMENTO_VEICULO = "documento_veiculo";
-  private static final String TIPO_DOCUMENTO_CNPJ = "documento_cnpj";
-
   private final UsuarioRepository usuarioRepository;
   private final EstabelecimentoRepository estabelecimentoRepository;
   private final EntregadorRepository entregadorRepository;
@@ -130,7 +126,7 @@ public class ProfileService {
           usuario.getId(),
           Purpose.IDENTITY_DOCUMENT,
           "identityUploadId");
-      createPendingDocument(usuario.getId(), TIPO_DOCUMENTO_IDENTIDADE, profile.identityUploadId());
+      createPendingDocument(usuario, Purpose.IDENTITY_DOCUMENT, profile.identityUploadId());
       pending.add("cpf");
     }
 
@@ -143,7 +139,7 @@ public class ProfileService {
     if (vehicleFieldsChanged) {
       validateVerificationUpload(
           profile.vehicleUploadId(), usuario.getId(), Purpose.VEHICLE_DOCUMENT, "vehicleUploadId");
-      createPendingDocument(usuario.getId(), TIPO_DOCUMENTO_VEICULO, profile.vehicleUploadId());
+      createPendingDocument(usuario, Purpose.VEHICLE_DOCUMENT, profile.vehicleUploadId());
       if (profile.vehicleType() != null) {
         pending.add("vehicleType");
       }
@@ -172,7 +168,7 @@ public class ProfileService {
     if (profile.cnpj() != null) {
       validateVerificationUpload(
           profile.cnpjUploadId(), usuario.getId(), Purpose.CNPJ_DOCUMENT, "cnpjUploadId");
-      createPendingDocument(usuario.getId(), TIPO_DOCUMENTO_CNPJ, profile.cnpjUploadId());
+      createPendingDocument(usuario, Purpose.CNPJ_DOCUMENT, profile.cnpjUploadId());
       pending.add("cnpj");
     }
 
@@ -246,11 +242,16 @@ public class ProfileService {
    * comum, mas duas requisições concorrentes reusando o mesmo upload correm até aqui — é a UNIQUE
    * do banco (V13) quem decide de verdade, e sem isso a violação vazaria como 500 em vez do 409 que
    * a checagem prévia já dá.
+   *
+   * <p>RF-04.3: editar um campo verificado "volta o cadastro à moderação" — {@code
+   * reabrirModeracaoSeNecessario} é quem cumpre essa parte (nunca implementada em T-04; só ficou
+   * clara a lacuna ao construir a mesma transição para T-06/RF-06.4).
    */
-  private void createPendingDocument(UUID usuarioId, String tipo, UUID uploadId) {
+  private void createPendingDocument(Usuario usuario, Purpose tipo, UUID uploadId) {
     try {
       documentoCadastroRepository.saveAndFlush(
-          new DocumentoCadastro(UuidV7.next(), usuarioId, tipo, uploadId));
+          new DocumentoCadastro(UuidV7.next(), usuario.getId(), tipo, uploadId));
+      usuario.reabrirModeracaoSeNecessario();
     } catch (DataIntegrityViolationException e) {
       throw new ConflictException(
           "UPLOAD_ALREADY_USED", "Este upload já foi usado em outro documento de cadastro.");
@@ -324,7 +325,10 @@ public class ProfileService {
     Map<String, LinkRef> links = new LinkedHashMap<>();
     links.put("self", LinkRef.get("/api/v1/me"));
 
-    if (usuario.getStatus() == UserStatus.PENDING) {
+    // REJECTED se comporta como PENDING para fins de _links (T-06): o usuário precisa ver o motivo
+    // em
+    // GET /me/documents e reenviar — mesma tela de "documentos pendentes", motivo diferente.
+    if (usuario.getStatus() == UserStatus.PENDING || usuario.getStatus() == UserStatus.REJECTED) {
       links.put("documents", new LinkRef("/api/v1/me/documents", "POST"));
       return links;
     }

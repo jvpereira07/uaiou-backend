@@ -13,7 +13,12 @@ public enum UserStatus {
   PENDING,
   ACTIVE,
   SUSPENDED,
-  BANNED;
+  BANNED,
+  /**
+   * Cadastro (ou reenvio de campo verificado) avaliado e negado — T-06/T-07. Volta a {@link
+   * #PENDING} no próximo reenvio.
+   */
+  REJECTED;
 
   @JsonValue
   public String toJson() {

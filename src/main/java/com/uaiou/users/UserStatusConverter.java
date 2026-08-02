@@ -16,6 +16,7 @@ public class UserStatusConverter implements AttributeConverter<UserStatus, Strin
       case ACTIVE -> "ativo";
       case SUSPENDED -> "suspenso";
       case BANNED -> "banido";
+      case REJECTED -> "rejeitado";
     };
   }
 
@@ -29,6 +30,7 @@ public class UserStatusConverter implements AttributeConverter<UserStatus, Strin
       case "ativo" -> UserStatus.ACTIVE;
       case "suspenso" -> UserStatus.SUSPENDED;
       case "banido" -> UserStatus.BANNED;
+      case "rejeitado" -> UserStatus.REJECTED;
       default ->
           throw new IllegalStateException("Valor de status de usuário desconhecido: " + dbData);
     };

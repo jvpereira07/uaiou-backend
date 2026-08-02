@@ -25,6 +25,28 @@ public class UserModerationTestFixtures {
     jdbcTemplate.update("update usuario set status = 'ativo' where id = ?", usuarioId);
   }
 
+  /**
+   * T-06: simula a decisão do admin (T-07, ainda não implementada) rejeitando um documento
+   * específico.
+   */
+  public void rejectDocument(UUID usuarioId, UUID documentoCadastroId, String motivo) {
+    jdbcTemplate.update("update usuario set status = 'rejeitado' where id = ?", usuarioId);
+    jdbcTemplate.update(
+        "update documento_cadastro set status_aprovacao = 'rejeitado', motivo_rejeicao = ? where id = ?",
+        motivo,
+        documentoCadastroId);
+  }
+
+  /**
+   * T-06: simula a decisão do admin (T-07, ainda não implementada) aprovando um documento
+   * específico.
+   */
+  public void approveDocument(UUID documentoCadastroId) {
+    jdbcTemplate.update(
+        "update documento_cadastro set status_aprovacao = 'aprovado' where id = ?",
+        documentoCadastroId);
+  }
+
   public void ban(UUID usuarioId, String motivo) {
     applySanction(usuarioId, "banido", "banimento", motivo, null);
   }

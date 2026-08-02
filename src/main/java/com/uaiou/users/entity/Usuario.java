@@ -133,4 +133,18 @@ public class Usuario {
   public void atualizarTelefone(String telefone) {
     this.telefone = telefone;
   }
+
+  /**
+   * RF-04.3 (edição de campo verificado) e RF-06.4 (reenvio de documento) — as duas chamam isto ao
+   * criar um {@code documento_cadastro} novo: a submissão precisa ser reavaliada, então o cadastro
+   * volta à fila. Sem efeito em {@code SUSPENDED}/{@code BANNED} de propósito — sanção é decisão de
+   * moderação independente de documento, reenviar um arquivo não deveria conseguir levantá-la
+   * silenciosamente (e, na prática, o middleware de escrita já bloqueia esses dois status antes
+   * desta chamada acontecer).
+   */
+  public void reabrirModeracaoSeNecessario() {
+    if (status == UserStatus.ACTIVE || status == UserStatus.REJECTED) {
+      status = UserStatus.PENDING;
+    }
+  }
 }

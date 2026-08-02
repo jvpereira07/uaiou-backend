@@ -10,6 +10,7 @@ import com.uaiou.uploads.dto.CreateUploadRequest;
 import com.uaiou.uploads.dto.CreateUploadResponse;
 import com.uaiou.users.Role;
 import java.net.URI;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,14 @@ import org.springframework.http.ResponseEntity;
 public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTest {
 
   protected static final String DEFAULT_PASSWORD = "senha-forte-o-suficiente";
+
+  // Fixture de 1x1 pixel JPEG válido — Tika (T-05) precisa de bytes reais para detectar image/jpeg
+  // de
+  // verdade; testes que só querem "um upload confirmado" em qualquer módulo reusam isto.
+  protected static final byte[] VALID_JPEG_BYTES =
+      Base64.getDecoder()
+          .decode(
+              "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=");
 
   private static final AtomicLong SEQUENCE = new AtomicLong();
 
@@ -123,6 +132,15 @@ public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTes
         HttpMethod.PUT,
         new HttpEntity<>(null, authHeaders(accessToken)),
         responseType);
+  }
+
+  /** Cria, envia e confirma um upload real de ponta a ponta — devolve o id já {@code ready}. */
+  protected UUID createAndConfirmUpload(String accessToken, Purpose purpose) {
+    CreateUploadResponse created =
+        createUpload(accessToken, purpose, "image/jpeg", (long) VALID_JPEG_BYTES.length).getBody();
+    putBytes(created.uploadUrl(), VALID_JPEG_BYTES, "image/jpeg");
+    confirmUpload(accessToken, created.id(), Object.class);
+    return created.id();
   }
 
   /**

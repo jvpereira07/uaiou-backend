@@ -11,6 +11,7 @@ import com.uaiou.users.dto.MeResponse;
 import com.uaiou.users.dto.PatchMeProfile;
 import com.uaiou.users.dto.PatchMeRequest;
 import com.uaiou.users.repository.DocumentoCadastroRepository;
+import com.uaiou.users.repository.UsuarioRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
 
   @Autowired private UploadTestFixtures uploads;
   @Autowired private DocumentoCadastroRepository documentoCadastroRepository;
+  @Autowired private UsuarioRepository usuarioRepository;
 
   @Test
   void displayNameAndTelefoneApplyImmediately() {
@@ -398,6 +400,40 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(response.getBody().error().code()).isEqualTo("UNEXPECTED_FIELD");
+  }
+
+  @Test
+  void editingAVerifiedFieldReopensModerationForAnAlreadyActiveAccount() {
+    // RF-04.3: "volta o cadastro à moderação" — a lacuna só apareceu construindo a mesma transição
+    // para T-06 (RF-06.4) e olhando de novo pra este fluxo.
+    RegisteredTestUser user = registerAndActivateMerchant();
+    String accessToken = login(user).accessToken();
+    UUID uploadId = uploads.createReadyUpload(user.id(), "documento_cnpj");
+
+    PatchMeRequest request =
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null,
+                null,
+                null,
+                null,
+                null,
+                "99999999000199",
+                uploadId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+    ResponseEntity<MeResponse> response = patchMe(accessToken, request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().status()).isEqualTo(UserStatus.PENDING);
+    assertThat(usuarioRepository.findById(user.id()).orElseThrow().getStatus())
+        .isEqualTo(UserStatus.PENDING);
   }
 
   private ResponseEntity<MeResponse> getMe(String accessToken) {
