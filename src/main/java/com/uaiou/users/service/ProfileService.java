@@ -2,14 +2,12 @@ package com.uaiou.users.service;
 
 import com.uaiou.auth.repository.RefreshTokenRepository;
 import com.uaiou.shared.error.BadRequestException;
-import com.uaiou.shared.error.BusinessRuleException;
 import com.uaiou.shared.error.ConflictException;
-import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.shared.error.UnauthorizedException;
 import com.uaiou.shared.id.UuidV7;
 import com.uaiou.shared.pagination.LinkRef;
-import com.uaiou.uploads.entity.Upload;
-import com.uaiou.uploads.repository.UploadRepository;
+import com.uaiou.uploads.Purpose;
+import com.uaiou.uploads.service.UploadService;
 import com.uaiou.users.Role;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.dto.Address;
@@ -54,7 +52,7 @@ public class ProfileService {
   private final EstabelecimentoRepository estabelecimentoRepository;
   private final EntregadorRepository entregadorRepository;
   private final DocumentoCadastroRepository documentoCadastroRepository;
-  private final UploadRepository uploadRepository;
+  private final UploadService uploadService;
   private final RefreshTokenRepository refreshTokenRepository;
 
   public ProfileService(
@@ -62,13 +60,13 @@ public class ProfileService {
       EstabelecimentoRepository estabelecimentoRepository,
       EntregadorRepository entregadorRepository,
       DocumentoCadastroRepository documentoCadastroRepository,
-      UploadRepository uploadRepository,
+      UploadService uploadService,
       RefreshTokenRepository refreshTokenRepository) {
     this.usuarioRepository = usuarioRepository;
     this.estabelecimentoRepository = estabelecimentoRepository;
     this.entregadorRepository = entregadorRepository;
     this.documentoCadastroRepository = documentoCadastroRepository;
-    this.uploadRepository = uploadRepository;
+    this.uploadService = uploadService;
     this.refreshTokenRepository = refreshTokenRepository;
   }
 
@@ -130,7 +128,7 @@ public class ProfileService {
       validateVerificationUpload(
           profile.identityUploadId(),
           usuario.getId(),
-          TIPO_DOCUMENTO_IDENTIDADE,
+          Purpose.IDENTITY_DOCUMENT,
           "identityUploadId");
       createPendingDocument(usuario.getId(), TIPO_DOCUMENTO_IDENTIDADE, profile.identityUploadId());
       pending.add("cpf");
@@ -144,7 +142,7 @@ public class ProfileService {
         "vehicleType\"/\"vehiclePlate");
     if (vehicleFieldsChanged) {
       validateVerificationUpload(
-          profile.vehicleUploadId(), usuario.getId(), TIPO_DOCUMENTO_VEICULO, "vehicleUploadId");
+          profile.vehicleUploadId(), usuario.getId(), Purpose.VEHICLE_DOCUMENT, "vehicleUploadId");
       createPendingDocument(usuario.getId(), TIPO_DOCUMENTO_VEICULO, profile.vehicleUploadId());
       if (profile.vehicleType() != null) {
         pending.add("vehicleType");
@@ -173,7 +171,7 @@ public class ProfileService {
 
     if (profile.cnpj() != null) {
       validateVerificationUpload(
-          profile.cnpjUploadId(), usuario.getId(), TIPO_DOCUMENTO_CNPJ, "cnpjUploadId");
+          profile.cnpjUploadId(), usuario.getId(), Purpose.CNPJ_DOCUMENT, "cnpjUploadId");
       createPendingDocument(usuario.getId(), TIPO_DOCUMENTO_CNPJ, profile.cnpjUploadId());
       pending.add("cnpj");
     }
@@ -223,33 +221,19 @@ public class ProfileService {
   }
 
   /**
-   * Campo verificado só aplica com uma prova pronta e do próprio usuário (RF-04.3) — sem isso, a
-   * edição é rejeitada antes de qualquer escrita; não existe "pendente sem prova nenhuma"
-   * (api/uploads.md: upload pertence a um único recurso, por isso a checagem de reuso aqui também).
+   * Campo verificado só aplica com uma prova pronta e do próprio usuário (RF-04.3) — a checagem em
+   * si (existe, é do usuário, está {@code ready}, é do propósito certo) é a "operação de vínculo"
+   * compartilhada de RF-05.4 ({@link UploadService#validateForConsumption}); só quem sabe que este
+   * upload seria reusado em outro {@code documento_cadastro} é este módulo, então essa parte fica
+   * aqui.
    */
   private void validateVerificationUpload(
-      UUID uploadId, UUID usuarioId, String tipoEsperado, String fieldName) {
+      UUID uploadId, UUID usuarioId, Purpose tipoEsperado, String fieldName) {
     if (uploadId == null) {
       throw new BadRequestException(
           "MISSING_FIELD", "\"" + fieldName + "\" é obrigatório para confirmar esse campo.");
     }
-    Upload upload =
-        uploadRepository
-            .findById(uploadId)
-            .orElseThrow(() -> new NotFoundException("UPLOAD_NOT_FOUND", "Upload não encontrado."));
-    if (!upload.pertenceA(usuarioId)) {
-      // 404, não 403 — não revela a existência de upload alheio (api/README.md).
-      throw new NotFoundException("UPLOAD_NOT_FOUND", "Upload não encontrado.");
-    }
-    if (!upload.isReady()) {
-      throw new BusinessRuleException(
-          "UPLOAD_NOT_READY", "O upload ainda não foi confirmado.", "RF-04.3");
-    }
-    if (!tipoEsperado.equals(upload.getPurpose())) {
-      throw new BadRequestException(
-          "UPLOAD_PURPOSE_MISMATCH",
-          "Este upload não corresponde ao documento esperado para este campo.");
-    }
+    uploadService.validateForConsumption(uploadId, usuarioId, tipoEsperado);
     if (documentoCadastroRepository.existsByUploadId(uploadId)) {
       throw new ConflictException(
           "UPLOAD_ALREADY_USED", "Este upload já foi usado em outro documento de cadastro.");

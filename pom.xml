@@ -23,6 +23,8 @@
 		<jjwt.version>0.13.0</jjwt.version>
 		<spring-security-crypto.version>7.1.0</spring-security-crypto.version>
 		<google-api-client.version>2.9.0</google-api-client.version>
+		<minio.version>8.5.17</minio.version>
+		<tika.version>2.9.2</tika.version>
 	</properties>
 
 	<dependencies>
@@ -97,6 +99,19 @@
 			<version>${google-api-client.version}</version>
 		</dependency>
 
+		<!-- Uploads (T-05) -->
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>${minio.version}</version>
+		</dependency>
+		<dependency>
+			<!-- Detecção de MIME real por magic bytes (RF-05.3) — nunca confia em content-type declarado. -->
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-core</artifactId>
+			<version>${tika.version}</version>
+		</dependency>
+
 		<!-- Testes -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -126,6 +141,10 @@
 			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Sem módulo dedicado org.testcontainers:minio aqui: só existe até a série 1.21.x, incompatível com
+		     testcontainers-postgresql/junit-jupiter 2.0.5 (gerenciado pelo BOM do Spring Boot) na mesma
+		     classpath de teste. AbstractIntegrationTest sobe o MinIO via GenericContainer simples, contra a
+		     imagem oficial — não precisa do wrapper especializado para o que os testes de T-05 exercitam. -->
 		<dependency>
 			<groupId>com.tngtech.archunit</groupId>
 			<artifactId>archunit-junit5</artifactId>

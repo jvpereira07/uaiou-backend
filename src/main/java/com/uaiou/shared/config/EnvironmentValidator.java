@@ -31,7 +31,11 @@ public class EnvironmentValidator
           "DB_USER",
           "DB_PASSWORD",
           "JWT_SECRET",
-          "GOOGLE_CLIENT_ID");
+          "GOOGLE_CLIENT_ID",
+          "MINIO_ENDPOINT",
+          "MINIO_ROOT_USER",
+          "MINIO_ROOT_PASSWORD",
+          "MINIO_BUCKET");
 
   @Override
   public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {

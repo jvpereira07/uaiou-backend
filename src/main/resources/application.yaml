@@ -53,3 +53,12 @@ app:
   password-reset:
     ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}
     base-url: ${APP_BASE_URL:http://localhost:8080}
+  minio:
+    # "internal" é o host que o BACKEND usa para falar com o MinIO (dentro do docker-compose, o nome do
+    # serviço); "public" é o host que o CLIENTE (fora da rede Docker) usa para seguir a URL pré-assinada —
+    # sem essa distinção, uma URL assinada com "minio:9000" seria inalcançável por qualquer app externo.
+    internal-endpoint: ${MINIO_ENDPOINT}
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:${MINIO_ENDPOINT}}
+    access-key: ${MINIO_ROOT_USER}
+    secret-key: ${MINIO_ROOT_PASSWORD}
+    bucket: ${MINIO_BUCKET}

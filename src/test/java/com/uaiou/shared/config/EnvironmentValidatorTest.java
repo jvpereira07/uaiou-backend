@@ -34,7 +34,11 @@ class EnvironmentValidatorTest {
             .withProperty("DB_USER", "uaiou")
             .withProperty("DB_PASSWORD", "secret")
             .withProperty("JWT_SECRET", "segredo-de-teste")
-            .withProperty("GOOGLE_CLIENT_ID", "client-id-de-teste");
+            .withProperty("GOOGLE_CLIENT_ID", "client-id-de-teste")
+            .withProperty("MINIO_ENDPOINT", "http://localhost:9000")
+            .withProperty("MINIO_ROOT_USER", "uaiou-teste")
+            .withProperty("MINIO_ROOT_PASSWORD", "senha-de-teste")
+            .withProperty("MINIO_BUCKET", "uaiou-uploads-teste");
 
     assertThatNoException().isThrownBy(() -> validator.validate(environment));
   }
@@ -49,7 +53,11 @@ class EnvironmentValidatorTest {
             .withProperty("DB_USER", "uaiou")
             .withProperty("DB_PASSWORD", "secret")
             .withProperty("JWT_SECRET", "segredo-de-teste")
-            .withProperty("GOOGLE_CLIENT_ID", "client-id-de-teste");
+            .withProperty("GOOGLE_CLIENT_ID", "client-id-de-teste")
+            .withProperty("MINIO_ENDPOINT", "http://localhost:9000")
+            .withProperty("MINIO_ROOT_USER", "uaiou-teste")
+            .withProperty("MINIO_ROOT_PASSWORD", "senha-de-teste")
+            .withProperty("MINIO_BUCKET", "uaiou-uploads-teste");
 
     assertThatThrownBy(() -> validator.validate(environment)).hasMessageContaining("DB_HOST");
   }

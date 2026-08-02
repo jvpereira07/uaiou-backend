@@ -5,10 +5,18 @@ import com.uaiou.auth.dto.RegisterRequest;
 import com.uaiou.auth.dto.RegisterResponse;
 import com.uaiou.auth.dto.SessionRequest;
 import com.uaiou.auth.dto.SessionResponse;
+import com.uaiou.uploads.Purpose;
+import com.uaiou.uploads.dto.CreateUploadRequest;
+import com.uaiou.uploads.dto.CreateUploadResponse;
 import com.uaiou.users.Role;
+import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 /**
@@ -89,6 +97,46 @@ public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTes
       throw new IllegalStateException("Falha ao autenticar usuário de teste: " + response);
     }
     return response.getBody();
+  }
+
+  protected HttpHeaders authHeaders(String accessToken) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(accessToken);
+    return headers;
+  }
+
+  protected <T> HttpEntity<T> authed(String accessToken, T body) {
+    return new HttpEntity<>(body, authHeaders(accessToken));
+  }
+
+  protected ResponseEntity<CreateUploadResponse> createUpload(
+      String accessToken, Purpose purpose, String contentType, long sizeBytes) {
+    CreateUploadRequest request = new CreateUploadRequest(purpose, contentType, sizeBytes);
+    return restTemplate.postForEntity(
+        baseUrl("/uploads"), authed(accessToken, request), CreateUploadResponse.class);
+  }
+
+  protected <T> ResponseEntity<T> confirmUpload(
+      String accessToken, UUID uploadId, Class<T> responseType) {
+    return restTemplate.exchange(
+        baseUrl("/uploads/" + uploadId),
+        HttpMethod.PUT,
+        new HttpEntity<>(null, authHeaders(accessToken)),
+        responseType);
+  }
+
+  /**
+   * {@code URI.create}, não {@code exchange(String, ...)}: a URL pré-assinada já vem com a
+   * assinatura AWS SigV4 codificada na query string, e o {@code UriComponentsBuilder} que o
+   * RestTemplate usa por trás de uma sobrecarga em String re-codifica a URL — dobrando o
+   * percent-encoding e invalidando a assinatura. Passar um {@link URI} já pronto evita essa
+   * re-codificação.
+   */
+  protected ResponseEntity<Void> putBytes(String presignedUrl, byte[] bytes, String contentType) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.parseMediaType(contentType));
+    return restTemplate.exchange(
+        URI.create(presignedUrl), HttpMethod.PUT, new HttpEntity<>(bytes, headers), Void.class);
   }
 
   protected static String uniqueSuffix() {
