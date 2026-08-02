@@ -49,6 +49,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
       SERVER_PORT: 8080
+      # Ativa db/seed (RF-02.11) — nunca definido em produção.
+      SPRING_PROFILES_ACTIVE: dev
       JWT_SECRET: ${JWT_SECRET}
       JWT_ACCESS_TTL_MINUTES: ${JWT_ACCESS_TTL_MINUTES:-15}
       JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-30}

@@ -1,0 +1,6 @@
+# Perfil de desenvolvimento local. A única diferença do padrão é acrescentar db/seed às localizações do
+# Flyway (RF-02.11) — é essa lista, não uma convenção de nome de arquivo, que garante que o seed nunca roda
+# em produção: um ambiente de produção simplesmente não ativa este perfil.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
