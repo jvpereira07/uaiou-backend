@@ -6,6 +6,7 @@ import com.uaiou.auth.dto.SessionResponse;
 import com.uaiou.shared.error.ErrorResponse;
 import com.uaiou.support.AbstractAuthIntegrationTest;
 import com.uaiou.support.UploadTestFixtures;
+import com.uaiou.uploads.Purpose;
 import com.uaiou.users.dto.Address;
 import com.uaiou.users.dto.MeResponse;
 import com.uaiou.users.dto.PatchMeProfile;
@@ -434,6 +435,76 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(response.getBody().status()).isEqualTo(UserStatus.PENDING);
     assertThat(usuarioRepository.findById(user.id()).orElseThrow().getStatus())
         .isEqualTo(UserStatus.PENDING);
+  }
+
+  @Test
+  void editingAVerifiedFieldAfterApprovalSupersedesThePreviousDocument() {
+    // RF-06.5: aprovado é a única exceção que aceita novo envio, mas o anterior precisa virar
+    // histórico — senão duas linhas "vigentes" do mesmo tipo coexistiriam.
+    RegisteredTestUser user = registerAndActivateMerchant();
+    String accessToken = login(user).accessToken();
+    UUID firstUploadId = uploads.createReadyUpload(user.id(), "documento_cnpj");
+    patchMe(
+        accessToken,
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null,
+                null,
+                null,
+                null,
+                null,
+                "99999999000199",
+                firstUploadId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null)));
+    UUID firstDocumentId =
+        documentoCadastroRepository
+            .findByUsuarioIdAndTipoAndStatusAprovacaoNot(
+                user.id(), Purpose.CNPJ_DOCUMENT, DocumentApprovalStatus.SUPERSEDED)
+            .orElseThrow()
+            .getId();
+    moderation.approveDocument(firstDocumentId);
+
+    UUID secondUploadId = uploads.createReadyUpload(user.id(), "documento_cnpj");
+    ResponseEntity<MeResponse> response =
+        patchMe(
+            accessToken,
+            new PatchMeRequest(
+                null,
+                null,
+                new PatchMeProfile(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "99999999000199",
+                    secondUploadId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null)));
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(
+            documentoCadastroRepository
+                .findById(firstDocumentId)
+                .orElseThrow()
+                .getStatusAprovacao())
+        .isEqualTo(DocumentApprovalStatus.SUPERSEDED);
+    var current =
+        documentoCadastroRepository.findByUsuarioIdAndTipoAndStatusAprovacaoNot(
+            user.id(), Purpose.CNPJ_DOCUMENT, DocumentApprovalStatus.SUPERSEDED);
+    assertThat(current).isPresent();
+    assertThat(current.get().getUploadId()).isEqualTo(secondUploadId);
   }
 
   private ResponseEntity<MeResponse> getMe(String accessToken) {

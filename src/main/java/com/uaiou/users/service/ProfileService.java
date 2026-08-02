@@ -8,6 +8,7 @@ import com.uaiou.shared.id.UuidV7;
 import com.uaiou.shared.pagination.LinkRef;
 import com.uaiou.uploads.Purpose;
 import com.uaiou.uploads.service.UploadService;
+import com.uaiou.users.DocumentApprovalStatus;
 import com.uaiou.users.Role;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.dto.Address;
@@ -246,9 +247,18 @@ public class ProfileService {
    * <p>RF-04.3: editar um campo verificado "volta o cadastro à moderação" — {@code
    * reabrirModeracaoSeNecessario} é quem cumpre essa parte (nunca implementada em T-04; só ficou
    * clara a lacuna ao construir a mesma transição para T-06/RF-06.4).
+   *
+   * <p>RF-06.5: mesmo se o documento vigente já estiver {@code aprovado}, esta é a exceção
+   * documentada que aceita novo envio — e por isso precisa marcar o anterior como {@code superado},
+   * senão duas linhas "vigentes" do mesmo tipo coexistiriam e quebrariam a invariante que {@link
+   * DocumentoCadastroService#submit} também depende (no máximo uma por usuário+tipo).
    */
   private void createPendingDocument(Usuario usuario, Purpose tipo, UUID uploadId) {
     try {
+      documentoCadastroRepository
+          .findByUsuarioIdAndTipoAndStatusAprovacaoNot(
+              usuario.getId(), tipo, DocumentApprovalStatus.SUPERSEDED)
+          .ifPresent(DocumentoCadastro::marcarSuperado);
       documentoCadastroRepository.saveAndFlush(
           new DocumentoCadastro(UuidV7.next(), usuario.getId(), tipo, uploadId));
       usuario.reabrirModeracaoSeNecessario();
