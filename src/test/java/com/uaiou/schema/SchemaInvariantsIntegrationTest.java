@@ -64,7 +64,7 @@ class SchemaInvariantsIntegrationTest extends AbstractIntegrationTest {
             + "frete_final, creditos_consumidos, dest_bairro, dest_rua, dest_numero, dest_lat, dest_long, "
             + "recebedor_nome) values (?, ?, ?, ?, ?, 6.00, ?, 1, 'Centro', 'Rua X', '1', -19.9, -43.9, 'Fulano')",
         id,
-        "P-" + id,
+        "P-" + id.toString().substring(0, 8),
         estabelecimentoId,
         entregadorId,
         status,

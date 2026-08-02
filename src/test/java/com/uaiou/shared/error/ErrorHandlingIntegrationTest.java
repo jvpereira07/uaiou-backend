@@ -48,7 +48,7 @@ class ErrorHandlingIntegrationTest extends AbstractIntegrationTest {
     ResponseEntity<ErrorResponse> response =
         restTemplate.getForEntity(baseUrl("/_test/business-rule"), ErrorResponse.class);
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     ErrorBody error = response.getBody().error();
     assertThat(error.code()).isEqualTo("INSUFFICIENT_CREDITS");
     assertThat(error.rule()).isEqualTo("RN-05.1");

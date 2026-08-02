@@ -2,6 +2,7 @@ package com.uaiou.support;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
@@ -23,6 +24,7 @@ import org.testcontainers.utility.DockerImageName;
  * comportamento idêntico entre "funciona no meu ambiente" e "funciona no CI".
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestRestTemplate
 @ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 

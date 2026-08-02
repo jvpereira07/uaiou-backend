@@ -22,6 +22,7 @@ public class BusinessRuleException extends ApiException {
 
   @Override
   public HttpStatus httpStatus() {
-    return HttpStatus.UNPROCESSABLE_ENTITY;
+    // Nome atual do 422 (RFC 9110) — o Spring mantém UNPROCESSABLE_ENTITY só como alias legado.
+    return HttpStatus.UNPROCESSABLE_CONTENT;
   }
 }
