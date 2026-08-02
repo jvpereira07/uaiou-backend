@@ -147,4 +147,35 @@ public class Usuario {
       status = UserStatus.PENDING;
     }
   }
+
+  /** RF-07.4 — admin aprova o cadastro pendente: libera a operação (RN-11.1). */
+  public void aprovar() {
+    this.status = UserStatus.ACTIVE;
+  }
+
+  /**
+   * RF-07.4 — admin rejeita o cadastro: fica {@code rejeitado}, distinto de {@code pendente}
+   * (usuário precisa ver o motivo e agir), até o reenvio via {@link
+   * #reabrirModeracaoSeNecessario()} recolocar na fila.
+   */
+  public void rejeitar() {
+    this.status = UserStatus.REJECTED;
+  }
+
+  /**
+   * RF-07.5 — suspensão (com prazo, encerrada pelo job de expiração ou por reativação antecipada).
+   */
+  public void suspender() {
+    this.status = UserStatus.SUSPENDED;
+  }
+
+  /** RF-07.5 — banimento (sem prazo, só reverte por decisão do admin). */
+  public void banir() {
+    this.status = UserStatus.BANNED;
+  }
+
+  /** RF-07.7 — encerramento de sanção (antecipado ou por expiração) devolve a conta a ativo. */
+  public void reativar() {
+    this.status = UserStatus.ACTIVE;
+  }
 }

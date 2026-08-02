@@ -85,6 +85,15 @@ public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTes
     return user;
   }
 
+  protected record AdminSession(UUID adminId, String accessToken) {}
+
+  /** T-07: admin de teste com sessão real (login por senha), não SQL simulando o token. */
+  protected AdminSession loginAdmin() {
+    UserModerationTestFixtures.TestAdmin admin = moderation.createLoginableAdmin(DEFAULT_PASSWORD);
+    String accessToken = loginPassword(admin.login(), DEFAULT_PASSWORD, Role.ADMIN).accessToken();
+    return new AdminSession(admin.id(), accessToken);
+  }
+
   protected RegisterResponse register(RegisterRequest request) {
     ResponseEntity<RegisterResponse> response =
         restTemplate.postForEntity(baseUrl("/auth/registrations"), request, RegisterResponse.class);

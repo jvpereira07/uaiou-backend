@@ -42,6 +42,12 @@ public class DocumentoCadastro {
   @Column(name = "motivo_rejeicao")
   private String motivoRejeicao;
 
+  @Column(name = "avaliado_por")
+  private UUID avaliadoPor;
+
+  @Column(name = "avaliado_em")
+  private Instant avaliadoEm;
+
   @CreationTimestamp
   @Column(name = "criado_em")
   private Instant criadoEm;
@@ -86,6 +92,14 @@ public class DocumentoCadastro {
     return motivoRejeicao;
   }
 
+  public UUID getAvaliadoPor() {
+    return avaliadoPor;
+  }
+
+  public Instant getAvaliadoEm() {
+    return avaliadoEm;
+  }
+
   public Instant getCriadoEm() {
     return criadoEm;
   }
@@ -96,5 +110,20 @@ public class DocumentoCadastro {
    */
   public void marcarSuperado() {
     this.statusAprovacao = DocumentApprovalStatus.SUPERSEDED;
+  }
+
+  /** RF-07.4 — decisão do admin: aprova o documento. */
+  public void aprovar(UUID adminId) {
+    this.statusAprovacao = DocumentApprovalStatus.APPROVED;
+    this.avaliadoPor = adminId;
+    this.avaliadoEm = Instant.now();
+  }
+
+  /** RF-07.4 — decisão do admin: rejeita o documento, com o motivo devolvido ao usuário. */
+  public void rejeitar(UUID adminId, String motivo) {
+    this.statusAprovacao = DocumentApprovalStatus.REJECTED;
+    this.motivoRejeicao = motivo;
+    this.avaliadoPor = adminId;
+    this.avaliadoEm = Instant.now();
   }
 }

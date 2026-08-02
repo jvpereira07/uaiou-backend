@@ -67,6 +67,20 @@ public class DocumentoCadastroService {
     return new DocumentsResponse(current.stream().map(this::toSummary).toList(), missing);
   }
 
+  /** RF-07.3/RF-07.4: usado pelo módulo {@code admin} — ver {@link #requiredTypesFor}. */
+  @Transactional(readOnly = true)
+  public boolean hasAllRequiredDocumentsSubmitted(Usuario usuario) {
+    Set<Purpose> required = requiredTypesFor(usuario);
+    Set<Purpose> submitted =
+        documentoCadastroRepository
+            .findByUsuarioIdAndStatusAprovacaoNot(
+                usuario.getId(), DocumentApprovalStatus.SUPERSEDED)
+            .stream()
+            .map(DocumentoCadastro::getTipo)
+            .collect(Collectors.toSet());
+    return submitted.containsAll(required);
+  }
+
   @Transactional
   public DocumentSummary submit(UUID usuarioId, SubmitDocumentRequest request) {
     Usuario usuario = requireUsuario(usuarioId);
@@ -113,7 +127,12 @@ public class DocumentoCadastroService {
     return toSummary(created);
   }
 
-  private Set<Purpose> requiredTypesFor(Usuario usuario) {
+  /**
+   * RF-07.3/RF-07.4: reusado pelo módulo {@code admin} (T-07) para montar a fila de aprovação (só
+   * entra quem já enviou tudo que o papel exige) e para bloquear aprovação de um cadastro
+   * incompleto.
+   */
+  public Set<Purpose> requiredTypesFor(Usuario usuario) {
     return switch (usuario.getTipo()) {
       case COURIER -> requiredTypesForCourier(usuario);
       case MERCHANT -> MERCHANT_REQUIRED_TYPES;
