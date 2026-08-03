@@ -62,3 +62,6 @@ app:
     access-key: ${MINIO_ROOT_USER}
     secret-key: ${MINIO_ROOT_PASSWORD}
     bucket: ${MINIO_BUCKET}
+  credits:
+    # RF-09.7: TODO(dono) — valor vai mudar; por isso é configuração, nunca literal no código.
+    cost-per-order: ${CREDITS_COST_PER_ORDER:1}
