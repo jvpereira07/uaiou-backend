@@ -339,6 +339,7 @@ public class OrderService {
         // Vitrine mostra só o bairro: endereço completo é do pedido aceito, não da lista pública.
         DestinationResponse.apenasBairro(pedido.getDestBairro()),
         pedido.getCriadoEm(),
+        pedido.getAceitoEm(),
         links);
   }
 

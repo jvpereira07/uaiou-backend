@@ -22,6 +22,12 @@ public record OrderSummary(
     MerchantRef merchant,
     DestinationResponse destination,
     Instant createdAt,
+    /**
+     * RF-13.8 — âncora do "tempo decorrido desde o aceite". Devolver o instante, e não os minutos
+     * já calculados, pelo mesmo motivo de {@code distanceKm}: o decorrido muda a cada segundo, e um
+     * número congelado na resposta ficaria errado antes de a tela terminar de renderizar.
+     */
+    Instant acceptedAt,
     @JsonProperty("_links") Map<String, LinkRef> links) {
 
   public record MerchantRef(UUID id, String name, String logoUrl) {}

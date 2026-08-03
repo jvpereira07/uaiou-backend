@@ -93,6 +93,9 @@ public abstract class AbstractIntegrationTest {
     registry.add("app.minio.secret-key", () -> MINIO_SECRET_KEY);
     registry.add("app.minio.bucket", () -> MINIO_BUCKET);
 
+    registry.add(
+        "app.delivery.cipher-key", () -> "chave-de-integracao-usada-só-em-teste-nunca-em-producao");
+
     registry.add("spring.data.redis.host", REDIS::getHost);
     registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
   }

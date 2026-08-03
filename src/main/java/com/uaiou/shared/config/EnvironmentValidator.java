@@ -37,7 +37,8 @@ public class EnvironmentValidator
           "MINIO_ROOT_PASSWORD",
           "MINIO_BUCKET",
           "REDIS_HOST",
-          "REDIS_PORT");
+          "REDIS_PORT",
+          "DELIVERY_CODE_CIPHER_KEY");
 
   @Override
   public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {

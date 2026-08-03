@@ -203,6 +203,21 @@ public class Pedido {
     return criadoEm;
   }
 
+  /**
+   * RF-13.4 — aceite: a atribuição e o valor final nascem juntos (ck_pedido_atribuicao_coerente,
+   * V5). O frete final é o proposto; contraoferta aceita por outro valor é caminho de T-14.
+   */
+  public void aceitarPor(java.util.UUID entregadorId) {
+    this.entregadorId = entregadorId;
+    this.freteFinal = this.freteProposto;
+    this.status = OrderStatus.ACCEPTED;
+    this.aceitoEm = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+  }
+
+  public Instant getAceitoEm() {
+    return aceitoEm;
+  }
+
   /** RF-11.3 — último passo da transação de criação, depois do crédito já debitado. */
   public void publicar() {
     this.status = OrderStatus.PUBLISHED;

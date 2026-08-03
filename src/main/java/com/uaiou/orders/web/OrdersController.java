@@ -2,9 +2,11 @@ package com.uaiou.orders.web;
 
 import com.uaiou.auth.web.AuthenticatedUser;
 import com.uaiou.auth.web.CurrentUserHolder;
+import com.uaiou.orders.dto.AssignmentResponse;
 import com.uaiou.orders.dto.CreateOrderRequest;
 import com.uaiou.orders.dto.OrderListResponse;
 import com.uaiou.orders.dto.OrderResponse;
+import com.uaiou.orders.service.AssignmentService;
 import com.uaiou.orders.service.OrderService;
 import com.uaiou.shared.error.BadRequestException;
 import com.uaiou.shared.error.ForbiddenException;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -32,9 +35,14 @@ public class OrdersController {
   private static final List<String> STATUS_DO_ENTREGADOR = List.of("accepted", "finalized");
 
   private final OrderService orderService;
+  private final AssignmentService assignmentService;
   private final CurrentUserHolder currentUserHolder;
 
-  public OrdersController(OrderService orderService, CurrentUserHolder currentUserHolder) {
+  public OrdersController(
+      OrderService orderService,
+      AssignmentService assignmentService,
+      CurrentUserHolder currentUserHolder) {
+    this.assignmentService = assignmentService;
     this.orderService = orderService;
     this.currentUserHolder = currentUserHolder;
   }
@@ -81,6 +89,25 @@ public class OrdersController {
     }
     throw new BadRequestException(
         "UNSUPPORTED_STATUS", "\"" + recorte + "\" não é um filtro válido para este papel.");
+  }
+
+  /**
+   * RF-13.1 — aceitar é <strong>criar a {@code assignment}</strong> do pedido, não um verbo na URL.
+   * Corpo vazio: a identidade do entregador vem do token, nunca do payload.
+   *
+   * <p>{@code Idempotency-Key} é aceito por compatibilidade com o contrato, mas a idempotência aqui
+   * não depende dele — ver {@link com.uaiou.orders.service.AssignmentService#accept}.
+   */
+  @PostMapping("/{id}/assignment")
+  @ResponseStatus(HttpStatus.CREATED)
+  public AssignmentResponse accept(
+      @PathVariable UUID id,
+      @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+    AuthenticatedUser user = currentUserHolder.require();
+    if (user.role() != Role.COURIER) {
+      throw new ForbiddenException("COURIER_ONLY", "Só entregadores aceitam pedidos.");
+    }
+    return assignmentService.accept(user.userId(), id);
   }
 
   @GetMapping("/{id}")

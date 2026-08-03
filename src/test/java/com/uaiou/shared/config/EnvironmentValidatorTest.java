@@ -40,7 +40,8 @@ class EnvironmentValidatorTest {
             .withProperty("MINIO_ROOT_PASSWORD", "senha-de-teste")
             .withProperty("MINIO_BUCKET", "uaiou-uploads-teste")
             .withProperty("REDIS_HOST", "localhost")
-            .withProperty("REDIS_PORT", "6379");
+            .withProperty("REDIS_PORT", "6379")
+            .withProperty("DELIVERY_CODE_CIPHER_KEY", "chave-de-teste-para-cifra-do-codigo");
 
     assertThatNoException().isThrownBy(() -> validator.validate(environment));
   }

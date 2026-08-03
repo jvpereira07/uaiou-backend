@@ -2,12 +2,15 @@ package com.uaiou.orders.repository;
 
 import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.entity.Pedido;
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,6 +29,16 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
           "select coalesce(max(cast(numero as integer)), 0) from pedido where estabelecimento_id = :estabelecimentoId",
       nativeQuery = true)
   int maiorNumeroDoEstabelecimento(@Param("estabelecimentoId") UUID estabelecimentoId);
+
+  /**
+   * RF-13.2/RF-13.7 — {@code SELECT ... FOR UPDATE}: a corrida pelo aceite é a REGRA, não a exceção
+   * (vários entregadores veem o mesmo pedido). Quem chega depois espera o lock e então lê o estado
+   * já atualizado — é o lock que garante "um entregador por pedido" (RN-01.2), não uma verificação
+   * otimista, que aqui só produziria retry no cliente numa disputa frequente.
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select p from Pedido p where p.id = :id")
+  Optional<Pedido> findByIdForUpdate(@Param("id") UUID id);
 
   Page<Pedido> findByEstabelecimentoIdOrderByCriadoEmDesc(
       UUID estabelecimentoId, Pageable pageable);

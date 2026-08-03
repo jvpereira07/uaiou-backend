@@ -74,6 +74,11 @@ app:
   credits:
     # RF-09.7: TODO(dono) — valor vai mudar; por isso é configuração, nunca literal no código.
     cost-per-order: ${CREDITS_COST_PER_ORDER:1}
+  delivery:
+    # Chave separada do banco (RN-08.3): comprometer o banco sozinho não entrega os códigos ativos.
+    cipher-key: ${DELIVERY_CODE_CIPHER_KEY}
+    # RN-08.7 — política fina de expiração é de T-15; nasce configurável para não virar literal.
+    code-ttl: ${DELIVERY_CODE_TTL:PT24H}
   orders:
     # RF-11.11: raio único na v1 (ajuste por região é fase 2) — calibrar contra densidade real.
     eligibility-radius-km: ${ORDERS_ELIGIBILITY_RADIUS_KM:10}
