@@ -4,6 +4,7 @@ import com.uaiou.admin.dto.AdminUserDetail;
 import com.uaiou.admin.dto.CourierSummary;
 import com.uaiou.admin.dto.MerchantSummary;
 import com.uaiou.admin.dto.SanctionSummary;
+import com.uaiou.blocks.service.BloqueioService;
 import com.uaiou.shared.error.BadRequestException;
 import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.shared.pagination.PageResponse;
@@ -46,18 +47,21 @@ public class SupervisionService {
   private final EstabelecimentoRepository estabelecimentoRepository;
   private final SancaoRepository sancaoRepository;
   private final DocumentoCadastroService documentoCadastroService;
+  private final BloqueioService bloqueioService;
 
   public SupervisionService(
       UsuarioRepository usuarioRepository,
       EntregadorRepository entregadorRepository,
       EstabelecimentoRepository estabelecimentoRepository,
       SancaoRepository sancaoRepository,
-      DocumentoCadastroService documentoCadastroService) {
+      DocumentoCadastroService documentoCadastroService,
+      BloqueioService bloqueioService) {
     this.usuarioRepository = usuarioRepository;
     this.entregadorRepository = entregadorRepository;
     this.estabelecimentoRepository = estabelecimentoRepository;
     this.sancaoRepository = sancaoRepository;
     this.documentoCadastroService = documentoCadastroService;
+    this.bloqueioService = bloqueioService;
   }
 
   @Transactional(readOnly = true)
@@ -116,6 +120,11 @@ public class SupervisionService {
         profile,
         documents,
         sanctions,
+        // RF-12.7: sinal de moderação só faz sentido para entregador — estabelecimento não é
+        // bloqueado por ninguém.
+        usuario.getTipo() == Role.COURIER
+            ? bloqueioService.distinctMerchantsBlocking(userId)
+            : null,
         usuario.getCriadoEm());
   }
 

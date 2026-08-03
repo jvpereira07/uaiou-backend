@@ -4,6 +4,8 @@ import com.uaiou.admin.dto.PendingRegistrationSummary;
 import com.uaiou.admin.dto.RegistrationReviewResponse;
 import com.uaiou.admin.dto.ReviewDecision;
 import com.uaiou.admin.dto.ReviewRegistrationRequest;
+import com.uaiou.notifications.NotificationType;
+import com.uaiou.notifications.service.NotificationService;
 import com.uaiou.shared.error.BadRequestException;
 import com.uaiou.shared.error.ConflictException;
 import com.uaiou.shared.error.NotFoundException;
@@ -19,6 +21,7 @@ import com.uaiou.users.repository.DocumentoCadastroRepository;
 import com.uaiou.users.repository.UsuarioRepository;
 import com.uaiou.users.service.DocumentoCadastroService;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,18 +35,21 @@ public class RegistrationReviewService {
   private final DocumentoCadastroService documentoCadastroService;
   private final UploadService uploadService;
   private final AuditService auditService;
+  private final NotificationService notificationService;
 
   public RegistrationReviewService(
       UsuarioRepository usuarioRepository,
       DocumentoCadastroRepository documentoCadastroRepository,
       DocumentoCadastroService documentoCadastroService,
       UploadService uploadService,
-      AuditService auditService) {
+      AuditService auditService,
+      NotificationService notificationService) {
     this.usuarioRepository = usuarioRepository;
     this.documentoCadastroRepository = documentoCadastroRepository;
     this.documentoCadastroService = documentoCadastroService;
     this.uploadService = uploadService;
     this.auditService = auditService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -109,6 +115,16 @@ public class RegistrationReviewService {
       usuario.rejeitar();
       auditService.record(adminId, "rejeitar_cadastro", "usuario", targetUserId, request.reason());
     }
+
+    // RF-07.10 — o resultado precisa chegar ao usuário: cadastro rejeitado sem aviso vira abandono
+    // silencioso, porque ele não descobre sozinho que falta trocar uma foto.
+    boolean aprovado = request.decision() == ReviewDecision.APPROVED;
+    notificationService.publicar(
+        targetUserId,
+        NotificationType.REGISTRATION_REVIEWED,
+        aprovado ? "Cadastro aprovado" : "Cadastro precisa de ajuste",
+        aprovado ? "Tudo certo! Você já pode operar na plataforma." : request.reason(),
+        Map.of("decision", aprovado ? "approved" : "rejected"));
 
     return new RegistrationReviewResponse(usuario.getId(), usuario.getStatus());
   }

@@ -2,11 +2,11 @@ package com.uaiou.orders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.uaiou.notifications.dto.NotificationListResponse;
 import com.uaiou.orders.dto.CreateOrderRequest;
 import com.uaiou.orders.dto.DestinationRequest;
 import com.uaiou.orders.dto.OrderListResponse;
 import com.uaiou.orders.dto.OrderResponse;
-import com.uaiou.orders.service.OrderPublishedFanout;
 import com.uaiou.presence.dto.UpdateAvailabilityRequest;
 import com.uaiou.presence.dto.UpdateLocationRequest;
 import com.uaiou.shared.error.ErrorResponse;
@@ -41,7 +41,6 @@ class OrderEligibilityIntegrationTest extends AbstractAuthIntegrationTest {
   private static final String LONGE_LONG = "-44.053800";
 
   @Autowired private OrderTestFixtures orders;
-  @Autowired private OrderPublishedFanout fanout;
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Test
@@ -170,9 +169,13 @@ class OrderEligibilityIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(depois).isNotEqualByComparingTo(antes);
   }
 
-  /** Critério de aceite 10: o fan-out pós-commit alcança exatamente os elegíveis. */
+  /**
+   * Critério de aceite 10 de T-11 e critério 7 de T-08: {@code order.published} chega a TODOS os
+   * elegíveis e a NENHUM bloqueado. Afirma sobre as notificações realmente entregues no inbox — a
+   * fonte de verdade (RF-08.2) —, não sobre um registro auxiliar.
+   */
   @Test
-  void publishFanoutTargetsOnlyEligibleCouriers() {
+  void publishFanoutDeliversOnlyToEligibleCouriers() {
     RegisteredTestUser perto = disponivelEm(PERTO_LAT, PERTO_LONG);
     RegisteredTestUser longe = disponivelEm(LONGE_LAT, LONGE_LONG);
     RegisteredTestUser bloqueado = disponivelEm(PERTO_LAT, PERTO_LONG);
@@ -180,16 +183,30 @@ class OrderEligibilityIntegrationTest extends AbstractAuthIntegrationTest {
     RegisteredTestUser merchant = registerAndActivateMerchant();
     orders.darCreditos(merchant.id(), 5);
     orders.bloquear(merchant.id(), bloqueado.id(), "Teste de fan-out");
-    publicarPedidoDe(merchant);
+    UUID pedidoId = publicarPedidoDe(merchant);
 
     // O fan-out roda depois do commit, em outra transação — esperar em vez de assumir.
     Awaitility.await()
         .atMost(java.time.Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
-              assertThat(fanout.ultimosDestinatarios()).contains(perto.id());
-              assertThat(fanout.ultimosDestinatarios()).doesNotContain(longe.id(), bloqueado.id());
+              assertThat(recebeuPublicacao(perto, pedidoId)).isTrue();
+              assertThat(recebeuPublicacao(longe, pedidoId)).isFalse();
+              assertThat(recebeuPublicacao(bloqueado, pedidoId)).isFalse();
             });
+  }
+
+  private boolean recebeuPublicacao(RegisteredTestUser courier, UUID pedidoId) {
+    NotificationListResponse inbox =
+        restTemplate
+            .exchange(
+                baseUrl("/me/notifications?type=order.published&perPage=100"),
+                HttpMethod.GET,
+                new HttpEntity<>(authHeaders(login(courier).accessToken())),
+                NotificationListResponse.class)
+            .getBody();
+    return inbox.data().stream()
+        .anyMatch(n -> pedidoId.toString().equals(n.payload().get("orderId")));
   }
 
   private RegisteredTestUser disponivelEm(String lat, String lng) {

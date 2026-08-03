@@ -3,6 +3,8 @@ package com.uaiou.admin.service;
 import com.uaiou.admin.dto.CreateSanctionRequest;
 import com.uaiou.admin.dto.SanctionSummary;
 import com.uaiou.auth.repository.RefreshTokenRepository;
+import com.uaiou.notifications.NotificationType;
+import com.uaiou.notifications.service.NotificationService;
 import com.uaiou.shared.error.BadRequestException;
 import com.uaiou.shared.error.ConflictException;
 import com.uaiou.shared.error.NotFoundException;
@@ -13,6 +15,7 @@ import com.uaiou.users.entity.Usuario;
 import com.uaiou.users.repository.SancaoRepository;
 import com.uaiou.users.repository.UsuarioRepository;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,16 +28,19 @@ public class SanctionService {
   private final SancaoRepository sancaoRepository;
   private final RefreshTokenRepository refreshTokenRepository;
   private final AuditService auditService;
+  private final NotificationService notificationService;
 
   public SanctionService(
       UsuarioRepository usuarioRepository,
       SancaoRepository sancaoRepository,
       RefreshTokenRepository refreshTokenRepository,
-      AuditService auditService) {
+      AuditService auditService,
+      NotificationService notificationService) {
     this.usuarioRepository = usuarioRepository;
     this.sancaoRepository = sancaoRepository;
     this.refreshTokenRepository = refreshTokenRepository;
     this.auditService = auditService;
+    this.notificationService = notificationService;
   }
 
   /**
@@ -84,6 +90,18 @@ public class SanctionService {
 
     String acao = request.type() == SanctionType.SUSPENSION ? "suspender_usuario" : "banir_usuario";
     auditService.record(adminId, acao, "usuario", targetUserId, request.reason());
+
+    // RF-07.10/RN-11.2 — o sancionado precisa saber por quê. SANCTION_APPLIED é mandatory no
+    // catálogo: quem foi sancionado não pode ter silenciado justamente esse aviso.
+    boolean suspensao = request.type() == SanctionType.SUSPENSION;
+    notificationService.publicar(
+        targetUserId,
+        NotificationType.SANCTION_APPLIED,
+        suspensao ? "Conta suspensa" : "Conta banida",
+        request.reason(),
+        suspensao
+            ? Map.of("type", "suspension", "until", String.valueOf(request.expiresAt()))
+            : Map.of("type", "ban"));
 
     return toSummary(sancao);
   }

@@ -1,8 +1,12 @@
 package com.uaiou.orders.service;
 
+import com.uaiou.notifications.NotificationType;
+import com.uaiou.notifications.service.NotificationService;
 import com.uaiou.orders.OrderPublishedEvent;
+import com.uaiou.orders.entity.Pedido;
 import com.uaiou.orders.repository.PedidoRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,21 +17,17 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * RF-11.10 — resolve <em>quem</em> deve receber {@code order.published} depois que a criação
- * commitou.
+ * RF-11.10 / RF-08.10 — único evento 1:N do sistema: {@code order.published} vai para o resultado
+ * da elegibilidade, calculado pelo MESMO motor da vitrine (T-11). Divergir aqui significaria
+ * notificar quem não consegue ver o pedido — ou, pior, o contrário.
  *
- * <p><strong>Entrega da notificação é de T-08, que não foi construída</strong> (priorização do
- * dono). O que é de T-11 — e o que o critério de aceite 10 mede — é o <em>conjunto de
- * destinatários</em>: "emitido apenas aos elegíveis". Esse conjunto é calculado aqui pelo mesmo
- * motor da vitrine, e exposto por {@link #ultimosDestinatarios} para o teste conseguir afirmar
- * sobre ele sem depender de infraestrutura de notificação que ainda não existe.
+ * <p>Entregador que fica disponível depois não recebe o push, mas vê o pedido na listagem: o
+ * caminho garantido do marketplace é a listagem, não o push (RF-08.10).
  *
- * <p>Quando T-08 entrar, o corpo do listener troca o log por uma chamada ao serviço de notificação;
- * a seleção não muda.
- *
- * <p>{@code AFTER_COMMIT} e {@code REQUIRES_NEW}: o fan-out lê o pedido já commitado, e uma falha
- * aqui não pode desfazer uma criação que já sucedeu — pedido publicado sem notificação é
- * degradação; pedido revertido porque a notificação falhou seria perda de trabalho do cliente.
+ * <p>{@code AFTER_COMMIT} + {@code REQUIRES_NEW}: a notificação é efeito do fato, não parte dele
+ * (RF-08.1). Falha aqui não pode desfazer uma criação que já sucedeu — pedido publicado sem
+ * notificação é degradação; pedido revertido por falha de notificação seria perda de trabalho do
+ * cliente.
  */
 @Component
 public class OrderPublishedFanout {
@@ -36,34 +36,41 @@ public class OrderPublishedFanout {
 
   private final PedidoRepository pedidoRepository;
   private final OrderEligibilityService eligibilityService;
-
-  private volatile List<UUID> ultimosDestinatarios = List.of();
+  private final NotificationService notificationService;
 
   public OrderPublishedFanout(
-      PedidoRepository pedidoRepository, OrderEligibilityService eligibilityService) {
+      PedidoRepository pedidoRepository,
+      OrderEligibilityService eligibilityService,
+      NotificationService notificationService) {
     this.pedidoRepository = pedidoRepository;
     this.eligibilityService = eligibilityService;
+    this.notificationService = notificationService;
   }
 
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void aoPublicar(OrderPublishedEvent evento) {
-    pedidoRepository
-        .findById(evento.pedidoId())
-        .ifPresent(
-            pedido -> {
-              List<UUID> elegiveis = eligibilityService.entregadoresElegiveisPara(pedido);
-              this.ultimosDestinatarios = elegiveis;
-              log.info(
-                  "order.published do pedido {} destinado a {} entregador(es) elegível(is)"
-                      + " — entrega efetiva da notificação é de T-08.",
-                  pedido.getId(),
-                  elegiveis.size());
-            });
+    pedidoRepository.findById(evento.pedidoId()).ifPresent(this::notificarElegiveis);
   }
 
-  /** Só para verificação (critério de aceite 10) enquanto T-08 não existe. */
-  public List<UUID> ultimosDestinatarios() {
-    return ultimosDestinatarios;
+  private void notificarElegiveis(Pedido pedido) {
+    List<UUID> elegiveis = eligibilityService.entregadoresElegiveisPara(pedido);
+    if (elegiveis.isEmpty()) {
+      return;
+    }
+
+    notificationService.publicarParaVarios(
+        elegiveis,
+        NotificationType.ORDER_PUBLISHED,
+        "Novo pedido disponível",
+        "Pedido nº " + pedido.getNumero() + " em " + pedido.getDestBairro() + ".",
+        // RF-08.7: só o necessário para o deep link abrir a tela certa — o resto o app busca com o
+        // token do próprio usuário.
+        Map.of("orderId", pedido.getId().toString(), "number", pedido.getNumero()));
+
+    log.info(
+        "order.published do pedido {} entregue a {} entregador(es) elegível(is).",
+        pedido.getId(),
+        elegiveis.size());
   }
 }
