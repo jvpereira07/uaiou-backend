@@ -12,6 +12,7 @@ import com.uaiou.shared.pagination.PagingRequest;
 import com.uaiou.users.Role;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.dto.Address;
+import com.uaiou.users.dto.CourierLocation;
 import com.uaiou.users.dto.DocumentsResponse;
 import com.uaiou.users.dto.MeProfile;
 import com.uaiou.users.entity.Entregador;
@@ -207,6 +208,11 @@ public class SupervisionService {
         entregador.getCpf(),
         entregador.getVeiculoTipo(),
         entregador.getVeiculoPlaca(),
+        entregador.isDisponivel(),
+        entregador.getLocalizacaoEm() == null
+            ? null
+            : new CourierLocation(
+                entregador.getLat(), entregador.getLongitude(), entregador.getLocalizacaoEm()),
         entregador.getEntregasRealizadas(),
         null,
         null,
@@ -217,6 +223,8 @@ public class SupervisionService {
 
   private MeProfile buildMerchantProfile(Estabelecimento estabelecimento) {
     return new MeProfile(
+        null,
+        null,
         null,
         null,
         null,

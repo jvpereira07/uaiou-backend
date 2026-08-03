@@ -54,9 +54,19 @@ public abstract class AbstractIntegrationTest {
           .withExposedPorts(9000)
           .waitingFor(Wait.forHttp("/minio/health/live").forPort(9000));
 
+  // Mesma tag do docker-compose. Sobe para todos os testes pelo mesmo motivo do MinIO: a
+  // autoconfiguração do Spring Data Redis entra em qualquer contexto, e um Redis ausente
+  // transformaria
+  // "degradação silenciosa" (RF-10.6) em ruído de log em toda a suíte.
+  private static final GenericContainer<?> REDIS =
+      new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+          .withExposedPorts(6379)
+          .waitingFor(Wait.forListeningPort());
+
   static {
     POSTGRES.start();
     MINIO.start();
+    REDIS.start();
   }
 
   @DynamicPropertySource
@@ -82,6 +92,9 @@ public abstract class AbstractIntegrationTest {
     registry.add("app.minio.access-key", () -> MINIO_ACCESS_KEY);
     registry.add("app.minio.secret-key", () -> MINIO_SECRET_KEY);
     registry.add("app.minio.bucket", () -> MINIO_BUCKET);
+
+    registry.add("spring.data.redis.host", REDIS::getHost);
+    registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
   }
 
   @LocalServerPort protected int port;

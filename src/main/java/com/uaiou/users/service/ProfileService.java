@@ -12,6 +12,7 @@ import com.uaiou.users.DocumentApprovalStatus;
 import com.uaiou.users.Role;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.dto.Address;
+import com.uaiou.users.dto.CourierLocation;
 import com.uaiou.users.dto.MeProfile;
 import com.uaiou.users.dto.MeResponse;
 import com.uaiou.users.dto.PatchMeProfile;
@@ -293,6 +294,8 @@ public class ProfileService {
         entregador.getCpf(),
         entregador.getVeiculoTipo(),
         entregador.getVeiculoPlaca(),
+        entregador.isDisponivel(),
+        buildLocation(entregador),
         entregador.getEntregasRealizadas(),
         null,
         null,
@@ -301,8 +304,21 @@ public class ProfileService {
         entregador.getScore());
   }
 
+  /**
+   * Nulo enquanto o entregador nunca reportou posição (T-10) — some do JSON em vez de vir vazio.
+   */
+  private CourierLocation buildLocation(Entregador entregador) {
+    if (entregador.getLocalizacaoEm() == null) {
+      return null;
+    }
+    return new CourierLocation(
+        entregador.getLat(), entregador.getLongitude(), entregador.getLocalizacaoEm());
+  }
+
   private MeProfile buildMerchantProfile(Estabelecimento estabelecimento) {
     return new MeProfile(
+        null,
+        null,
         null,
         null,
         null,

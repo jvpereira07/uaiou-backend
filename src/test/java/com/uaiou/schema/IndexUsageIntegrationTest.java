@@ -30,8 +30,8 @@ class IndexUsageIntegrationTest extends AbstractIntegrationTest {
 
   @Test
   void indiceParcialDeElegibilidadeSatisfazAConsultaDeProximidade() {
-    inserirEntregador(true, -19.90);
-    inserirEntregador(false, -19.90);
+    UUID disponivel = inserirEntregador(true, -19.90);
+    UUID indisponivel = inserirEntregador(false, -19.90);
 
     jdbc.execute("set local enable_seqscan = off");
 
@@ -51,10 +51,15 @@ class IndexUsageIntegrationTest extends AbstractIntegrationTest {
                 + "where disponivel and localizacao_em > now() - interval '5 minutes' "
                 + "and lat between -20.0 and -19.8 and long between -44.0 and -43.8",
             (rs, rowNum) -> (UUID) rs.getObject("usuario_id"));
-    assertThat(resultado).hasSize(1);
+    // Asserção sobre as PRÓPRIAS linhas, não sobre o tamanho da tabela: o container de Postgres é
+    // singleton para toda a suíte, e os testes de presença (T-10) deixam entregadores disponíveis
+    // de
+    // verdade dentro desta mesma caixa delimitadora. "hasSize(1)" só passava enquanto ninguém mais
+    // criava um entregador disponível — acoplamento acidental entre classes de teste.
+    assertThat(resultado).contains(disponivel).doesNotContain(indisponivel);
   }
 
-  private void inserirEntregador(boolean disponivel, double lat) {
+  private UUID inserirEntregador(boolean disponivel, double lat) {
     UUID usuarioId = UUID.randomUUID();
     jdbc.update(
         "insert into usuario (id, login, email, senha_hash, tipo, nome_exibicao, status) "
@@ -69,5 +74,6 @@ class IndexUsageIntegrationTest extends AbstractIntegrationTest {
         usuarioId.toString().replaceAll("-", "").substring(0, 11),
         disponivel,
         lat);
+    return usuarioId;
   }
 }

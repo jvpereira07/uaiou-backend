@@ -111,6 +111,12 @@
 			<artifactId>tika-core</artifactId>
 			<version>${tika.version}</version>
 		</dependency>
+		<dependency>
+			<!-- Cache de presença do entregador (RF-10.6, T-10). O PostgreSQL continua sendo a fonte de
+			     verdade: o Redis é replicação com TTL, e toda leitura degrada para o banco se ele cair. -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
 
 		<!-- Testes -->
 		<dependency>

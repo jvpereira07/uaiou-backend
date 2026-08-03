@@ -35,7 +35,9 @@ public class EnvironmentValidator
           "MINIO_ENDPOINT",
           "MINIO_ROOT_USER",
           "MINIO_ROOT_PASSWORD",
-          "MINIO_BUCKET");
+          "MINIO_BUCKET",
+          "REDIS_HOST",
+          "REDIS_PORT");
 
   @Override
   public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {

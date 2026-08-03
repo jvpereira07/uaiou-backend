@@ -38,7 +38,9 @@ class EnvironmentValidatorTest {
             .withProperty("MINIO_ENDPOINT", "http://localhost:9000")
             .withProperty("MINIO_ROOT_USER", "uaiou-teste")
             .withProperty("MINIO_ROOT_PASSWORD", "senha-de-teste")
-            .withProperty("MINIO_BUCKET", "uaiou-uploads-teste");
+            .withProperty("MINIO_BUCKET", "uaiou-uploads-teste")
+            .withProperty("REDIS_HOST", "localhost")
+            .withProperty("REDIS_PORT", "6379");
 
     assertThatNoException().isThrownBy(() -> validator.validate(environment));
   }

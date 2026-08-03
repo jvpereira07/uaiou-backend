@@ -23,6 +23,15 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      # Cache, não fonte de verdade (RF-10.6): um Redis lento não pode segurar a rota de maior volume do
+      # sistema. Timeout curto + degradação para o PostgreSQL é preferível a esperar.
+      timeout: 500ms
+      connect-timeout: 500ms
+
   jackson:
     # Jackson 3 (usado pelo Spring Boot 4) já serializa java.time.Instant como ISO-8601 UTC por padrão —
     # não existe mais a feature "write-dates-as-timestamps" para desligar (verificado empiricamente).
@@ -65,3 +74,7 @@ app:
   credits:
     # RF-09.7: TODO(dono) — valor vai mudar; por isso é configuração, nunca literal no código.
     cost-per-order: ${CREDITS_COST_PER_ORDER:1}
+  presence:
+    # RF-10.7: idade máxima de uma posição para ela ainda valer como "recente" (elegibilidade, ficar
+    # disponível) e TTL da réplica no Redis. Sugestão inicial da task: 5 min.
+    freshness: ${PRESENCE_FRESHNESS:PT5M}

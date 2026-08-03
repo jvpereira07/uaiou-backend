@@ -8,6 +8,9 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Entity
@@ -32,6 +35,22 @@ public class Entregador {
   private String veiculoPlaca;
 
   private boolean disponivel;
+
+  @Column(name = "disponivel_desde")
+  private Instant disponivelDesde;
+
+  private BigDecimal lat;
+
+  // Campo "longitude" mapeado para a coluna "long" (V1__identidade.sql): o nome curto no banco vem
+  // do
+  // modelo de domínio, mas "long" como identificador Java seria palavra reservada.
+  @Column(name = "long")
+  private BigDecimal longitude;
+
+  @Column(name = "localizacao_em")
+  private Instant localizacaoEm;
+
+  private BigDecimal accuracy;
 
   private BigDecimal score;
 
@@ -71,11 +90,76 @@ public class Entregador {
     return disponivel;
   }
 
+  public Instant getDisponivelDesde() {
+    return disponivelDesde;
+  }
+
+  public BigDecimal getLat() {
+    return lat;
+  }
+
+  public BigDecimal getLongitude() {
+    return longitude;
+  }
+
+  public Instant getLocalizacaoEm() {
+    return localizacaoEm;
+  }
+
+  public BigDecimal getAccuracy() {
+    return accuracy;
+  }
+
   public BigDecimal getScore() {
     return score;
   }
 
   public int getEntregasRealizadas() {
     return entregasRealizadas;
+  }
+
+  /**
+   * RF-10.4/RF-10.5 — a última posição sobrescreve; não há histórico de trajeto (decisão de
+   * privacidade e retenção, T-10).
+   */
+  public void atualizarLocalizacao(BigDecimal lat, BigDecimal longitude, BigDecimal accuracy) {
+    this.lat = lat;
+    this.longitude = longitude;
+    this.accuracy = accuracy;
+    this.localizacaoEm = agora();
+  }
+
+  /**
+   * RF-10.2 — "recente" é relativo ao limite de frescor configurado (RF-10.7). Sem posição nenhuma
+   * também é "não recente": o entregador nunca reportou.
+   */
+  public boolean temPosicaoRecente(Duration limite, Instant agora) {
+    return localizacaoEm != null && localizacaoEm.isAfter(agora.minus(limite));
+  }
+
+  /** RF-10.1/RF-10.10 — {@code disponivelDesde} é o {@code since} devolvido pela rota. */
+  public void ficarDisponivel() {
+    if (!this.disponivel) {
+      this.disponivel = true;
+      this.disponivelDesde = agora();
+    }
+  }
+
+  /**
+   * {@code timestamptz} do Postgres guarda microssegundos; {@code Instant.now()} traz
+   * nanossegundos. Sem truncar, a resposta da primeira escrita anunciaria dígitos que nunca foram
+   * persistidos, e a mesma marca lida de volta depois pareceria ter mudado sozinha.
+   */
+  private static Instant agora() {
+    return Instant.now().truncatedTo(ChronoUnit.MICROS);
+  }
+
+  /**
+   * RF-10.3 — desligar significa "não me mande mais", não "abandonei a entrega atual": nada aqui
+   * toca em pedido. O par (disponivel, disponivelDesde) volta a zero junto.
+   */
+  public void ficarIndisponivel() {
+    this.disponivel = false;
+    this.disponivelDesde = null;
   }
 }

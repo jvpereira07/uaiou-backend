@@ -13,6 +13,9 @@ public record MeProfile(
     String cpf,
     String vehicleType,
     String vehiclePlate,
+    // Entregador — presença (T-10). Nulos para estabelecimento e somem do JSON.
+    Boolean available,
+    CourierLocation location,
     // Entregador — materializados (RF-04.7)
     Integer completedDeliveries,
     // Estabelecimento — verificado (RF-04.3)
