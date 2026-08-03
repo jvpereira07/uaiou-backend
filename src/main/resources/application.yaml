@@ -74,6 +74,9 @@ app:
   credits:
     # RF-09.7: TODO(dono) — valor vai mudar; por isso é configuração, nunca literal no código.
     cost-per-order: ${CREDITS_COST_PER_ORDER:1}
+  orders:
+    # RF-11.11: raio único na v1 (ajuste por região é fase 2) — calibrar contra densidade real.
+    eligibility-radius-km: ${ORDERS_ELIGIBILITY_RADIUS_KM:10}
   presence:
     # RF-10.7: idade máxima de uma posição para ela ainda valer como "recente" (elegibilidade, ficar
     # disponível) e TTL da réplica no Redis. Sugestão inicial da task: 5 min.

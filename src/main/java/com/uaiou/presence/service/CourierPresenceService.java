@@ -95,6 +95,23 @@ public class CourierPresenceService {
   }
 
   /**
+   * "A posição DESTE entregador ainda vale?" — pergunta pontual, respondida direto na fonte de
+   * verdade. Deliberadamente não passa pelo cache: o Redis existe para a listagem de muitos
+   * (RF-10.6), e varrer a lista global para achar um id seria O(n) por uma resposta O(1), além de
+   * fazer a resposta depender do estado do cache em vez do estado real.
+   */
+  @Transactional(readOnly = true)
+  public boolean hasFreshPresence(UUID courierId) {
+    return entregadorRepository
+        .findById(courierId)
+        .map(
+            entregador ->
+                entregador.isDisponivel()
+                    && entregador.temPosicaoRecente(properties.freshness(), Instant.now()))
+        .orElse(false);
+  }
+
+  /**
    * RF-10.6/RF-10.7 — o que T-11 vai consumir. Caminho feliz responde do Redis; qualquer falha do
    * cache degrada para o PostgreSQL (critério de aceite 7), e o corte por frescor é o mesmo nos
    * dois caminhos (critério de aceite 6).
