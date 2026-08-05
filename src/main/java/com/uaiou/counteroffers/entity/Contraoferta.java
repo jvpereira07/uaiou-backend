@@ -77,12 +77,32 @@ public class Contraoferta {
     return status;
   }
 
+  public Instant getRespondidoEm() {
+    return respondidoEm;
+  }
+
+  public Instant getCriadoEm() {
+    return criadoEm;
+  }
+
   /**
    * RF-13.4 — o pedido foi aceito por outro caminho; esta proposta perdeu o objeto. Distinto de
    * "recusada" (T-14): ninguém a avaliou, ela deixou de ser possível.
    */
   public void invalidar() {
     this.status = CounterofferStatus.INVALIDATED;
+    this.respondidoEm = Instant.now().truncatedTo(ChronoUnit.MICROS);
+  }
+
+  /** RF-14.6 — decisão do estabelecimento: aceitar pelo valor proposto. */
+  public void aceitar() {
+    this.status = CounterofferStatus.ACCEPTED;
+    this.respondidoEm = Instant.now().truncatedTo(ChronoUnit.MICROS);
+  }
+
+  /** RF-14.7 — decisão do estabelecimento: recusar, sem afetar a disponibilidade do pedido. */
+  public void recusar() {
+    this.status = CounterofferStatus.REJECTED;
     this.respondidoEm = Instant.now().truncatedTo(ChronoUnit.MICROS);
   }
 }

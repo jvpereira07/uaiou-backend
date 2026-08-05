@@ -1,6 +1,5 @@
 package com.uaiou.orders.service;
 
-import com.uaiou.blocks.service.BloqueioService;
 import com.uaiou.counteroffers.CounterofferStatus;
 import com.uaiou.counteroffers.entity.Contraoferta;
 import com.uaiou.counteroffers.repository.ContraofertaRepository;
@@ -11,15 +10,9 @@ import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.dto.AssignmentResponse;
 import com.uaiou.orders.entity.Pedido;
 import com.uaiou.orders.repository.PedidoRepository;
-import com.uaiou.presence.service.CourierPresenceService;
 import com.uaiou.shared.error.ConflictException;
-import com.uaiou.shared.error.ForbiddenException;
 import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.shared.pagination.LinkRef;
-import com.uaiou.users.UserStatus;
-import com.uaiou.users.entity.Entregador;
-import com.uaiou.users.repository.EntregadorRepository;
-import com.uaiou.users.repository.UsuarioRepository;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,33 +26,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssignmentService {
 
   private final PedidoRepository pedidoRepository;
-  private final EntregadorRepository entregadorRepository;
-  private final UsuarioRepository usuarioRepository;
   private final ContraofertaRepository contraofertaRepository;
   private final OtpRepository otpRepository;
   private final DeliveryCodeService deliveryCodeService;
-  private final BloqueioService bloqueioService;
-  private final CourierPresenceService courierPresenceService;
+  private final CourierEligibilityGuard eligibilityGuard;
   private final ApplicationEventPublisher events;
 
   public AssignmentService(
       PedidoRepository pedidoRepository,
-      EntregadorRepository entregadorRepository,
-      UsuarioRepository usuarioRepository,
       ContraofertaRepository contraofertaRepository,
       OtpRepository otpRepository,
       DeliveryCodeService deliveryCodeService,
-      BloqueioService bloqueioService,
-      CourierPresenceService courierPresenceService,
+      CourierEligibilityGuard eligibilityGuard,
       ApplicationEventPublisher events) {
     this.pedidoRepository = pedidoRepository;
-    this.entregadorRepository = entregadorRepository;
-    this.usuarioRepository = usuarioRepository;
     this.contraofertaRepository = contraofertaRepository;
     this.otpRepository = otpRepository;
     this.deliveryCodeService = deliveryCodeService;
-    this.bloqueioService = bloqueioService;
-    this.courierPresenceService = courierPresenceService;
+    this.eligibilityGuard = eligibilityGuard;
     this.events = events;
   }
 
@@ -92,7 +76,7 @@ public class AssignmentService {
       throw notFound();
     }
 
-    revalidarEntregador(entregadorId, pedido);
+    eligibilityGuard.ensureCanTransact(entregadorId, pedido);
 
     pedido.aceitarPor(entregadorId);
 
@@ -116,38 +100,6 @@ public class AssignmentService {
     events.publishEvent(new OrderAssignedEvent(pedidoId, entregadorId, proponentes));
 
     return toResponse(pedido);
-  }
-
-  /**
-   * RF-13.3 — revalidação dentro do lock. Cada porta tem o seu erro porque cada uma diz algo
-   * diferente ao app: bloqueado é decisão do estabelecimento, indisponível/inativo é estado do
-   * próprio entregador.
-   */
-  private void revalidarEntregador(UUID entregadorId, Pedido pedido) {
-    Entregador entregador =
-        entregadorRepository
-            .findById(entregadorId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        "COURIER_NOT_FOUND", "Perfil de entregador não encontrado."));
-
-    boolean contaAtiva =
-        usuarioRepository
-            .findById(entregadorId)
-            .map(usuario -> usuario.getStatus() == UserStatus.ACTIVE)
-            .orElse(false);
-    if (!contaAtiva) {
-      throw new ForbiddenException(
-          "ACCOUNT_NOT_ACTIVE", "Só uma conta ativa pode aceitar pedidos.");
-    }
-    if (!entregador.isDisponivel() || !courierPresenceService.hasFreshPresence(entregadorId)) {
-      throw new ForbiddenException(
-          "COURIER_NOT_AVAILABLE",
-          "Fique disponível e envie sua posição atual antes de aceitar um pedido.");
-    }
-    // RF-12.3: pode ter sido bloqueado entre a listagem e o aceite.
-    bloqueioService.requireNotBlocked(pedido.getEstabelecimentoId(), entregadorId);
   }
 
   private AssignmentResponse toResponse(Pedido pedido) {

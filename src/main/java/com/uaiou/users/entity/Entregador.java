@@ -12,6 +12,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "entregador")
@@ -53,6 +55,13 @@ public class Entregador {
   private BigDecimal accuracy;
 
   private BigDecimal score;
+
+  @Column(name = "score_componentes")
+  @JdbcTypeCode(SqlTypes.JSON)
+  private String scoreComponentes;
+
+  @Column(name = "score_calculado_em")
+  private Instant scoreCalculadoEm;
 
   @Column(name = "entregas_realizadas")
   private int entregasRealizadas;
@@ -114,6 +123,24 @@ public class Entregador {
     return score;
   }
 
+  public String getScoreComponentes() {
+    return scoreComponentes;
+  }
+
+  public Instant getScoreCalculadoEm() {
+    return scoreCalculadoEm;
+  }
+
+  /**
+   * RF-20.3/RF-20.4 — valor e componentes gravados JUNTOS: expor o número sem os componentes
+   * violaria a RN-04.1. {@code null} é legítimo (RF-20.9: sem base), não um erro.
+   */
+  public void atualizarScore(BigDecimal valor, String componentesJson, Instant calculadoEm) {
+    this.score = valor;
+    this.scoreComponentes = componentesJson;
+    this.scoreCalculadoEm = calculadoEm;
+  }
+
   public int getEntregasRealizadas() {
     return entregasRealizadas;
   }
@@ -161,5 +188,10 @@ public class Entregador {
   public void ficarIndisponivel() {
     this.disponivel = false;
     this.disponivelDesde = null;
+  }
+
+  /** RF-15.9/RF-17.4 — contador de entregas concluídas, por código ou contestável. */
+  public void incrementarEntregasRealizadas() {
+    this.entregasRealizadas++;
   }
 }

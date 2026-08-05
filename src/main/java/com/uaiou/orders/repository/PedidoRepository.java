@@ -67,4 +67,23 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
       @Param("longMin") BigDecimal longMin,
       @Param("longMax") BigDecimal longMax,
       @Param("entregadorId") UUID entregadorId);
+
+  /** RF-17.6 — janela de contestação vencida, para o job de consolidação. */
+  List<Pedido> findByStatusAndFinalizadoEmBefore(OrderStatus status, java.time.Instant limite);
+
+  /** RF-19.2/RF-19.8 — entregas finalizadas de cada lado, insumo de "pendentes de avaliar". */
+  List<Pedido> findByEstabelecimentoIdAndStatusIn(UUID estabelecimentoId, List<OrderStatus> status);
+
+  List<Pedido> findByEntregadorIdAndStatusIn(UUID entregadorId, List<OrderStatus> status);
+
+  /** RF-19.5 — job do padrão positivo: finalizadas com janela de avaliação vencida. */
+  List<Pedido> findByStatusInAndFinalizadoEmBefore(
+      List<OrderStatus> status, java.time.Instant limite);
+
+  /** RF-22.2/RF-22.3 — recorte por período para as estatísticas de cada papel. */
+  List<Pedido> findByEntregadorIdAndCriadoEmBetween(
+      UUID entregadorId, java.time.Instant de, java.time.Instant ate);
+
+  List<Pedido> findByEstabelecimentoIdAndCriadoEmBetween(
+      UUID estabelecimentoId, java.time.Instant de, java.time.Instant ate);
 }

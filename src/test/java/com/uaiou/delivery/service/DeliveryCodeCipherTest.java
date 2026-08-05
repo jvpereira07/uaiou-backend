@@ -17,8 +17,7 @@ import org.junit.jupiter.api.Test;
 class DeliveryCodeCipherTest {
 
   private final DeliveryCodeCipher cipher =
-      new DeliveryCodeCipher(
-          new DeliveryProperties("chave-de-teste-do-codigo", Duration.ofHours(24)));
+      new DeliveryCodeCipher(propriedades("chave-de-teste-do-codigo"));
 
   @Test
   void cifrarEDecifrarDevolveOMesmoCodigo() {
@@ -60,9 +59,7 @@ class DeliveryCodeCipherTest {
 
   @Test
   void chaveDiferenteNaoDecifra() {
-    DeliveryCodeCipher outra =
-        new DeliveryCodeCipher(
-            new DeliveryProperties("outra-chave-completamente", Duration.ofHours(1)));
+    DeliveryCodeCipher outra = new DeliveryCodeCipher(propriedades("outra-chave-completamente"));
 
     String cifrado = cipher.cifrar("042317");
 
@@ -90,5 +87,18 @@ class DeliveryCodeCipherTest {
       vistos.add(codigo);
     }
     assertThat(vistos).hasSizeGreaterThan(100);
+  }
+
+  private static DeliveryProperties propriedades(String cipherKey) {
+    return new DeliveryProperties(
+        cipherKey,
+        Duration.ofHours(24),
+        150,
+        3,
+        300,
+        Duration.ofMinutes(30),
+        2,
+        10,
+        Duration.ofDays(1));
   }
 }

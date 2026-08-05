@@ -34,7 +34,8 @@ class FinancialAdjustmentIntegrationTest extends AbstractAuthIntegrationTest {
                     50,
                     "Recarga paga por Pix e não creditada",
                     new FinancialAdjustmentRequest.ReferenceRef(
-                        "support_ticket", UUID.randomUUID()))),
+                        "support_ticket", UUID.randomUUID()),
+                    null)),
             FinancialAdjustmentResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -64,7 +65,7 @@ class FinancialAdjustmentIntegrationTest extends AbstractAuthIntegrationTest {
             authed(
                 admin.accessToken(),
                 new FinancialAdjustmentRequest(
-                    "credits_adjustment", merchant.id(), 50, "Sem referência", null)),
+                    "credits_adjustment", merchant.id(), 50, "Sem referência", null, null)),
             ErrorResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
@@ -89,7 +90,8 @@ class FinancialAdjustmentIntegrationTest extends AbstractAuthIntegrationTest {
                     50,
                     "Não suportado ainda",
                     new FinancialAdjustmentRequest.ReferenceRef(
-                        "support_ticket", UUID.randomUUID()))),
+                        "support_ticket", UUID.randomUUID()),
+                    null)),
             ErrorResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -107,7 +109,8 @@ class FinancialAdjustmentIntegrationTest extends AbstractAuthIntegrationTest {
                 merchantId,
                 amount,
                 "Ajuste de teste",
-                new FinancialAdjustmentRequest.ReferenceRef("support_ticket", UUID.randomUUID()))),
+                new FinancialAdjustmentRequest.ReferenceRef("support_ticket", UUID.randomUUID()),
+                null)),
         FinancialAdjustmentResponse.class);
   }
 

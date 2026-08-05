@@ -79,6 +79,20 @@ app:
     cipher-key: ${DELIVERY_CODE_CIPHER_KEY}
     # RN-08.7 — política fina de expiração é de T-15; nasce configurável para não virar literal.
     code-ttl: ${DELIVERY_CODE_TTL:PT24H}
+    # RN-08.1: raio dentro do qual a finalização é permitida.
+    geofence-radius-meters: ${DELIVERY_GEOFENCE_RADIUS_METERS:150}
+    # RF-15.8: tentativas de código antes do bloqueio (força bruta em 4-6 dígitos).
+    max-attempts: ${DELIVERY_MAX_ATTEMPTS:3}
+    # RF-15.7: divergência entre a posição do corpo e a última reportada que ainda não marca revisão.
+    position-divergence-tolerance-meters: ${DELIVERY_POSITION_DIVERGENCE_TOLERANCE_METERS:300}
+    # RF-16.3/RF-16.5: prazo do degrau 2 até a atribuição de falha.
+    contingency-deadline: ${DELIVERY_CONTINGENCY_DEADLINE:PT30M}
+    # RF-16.2: reenvios do degrau 1 antes de escalar ao degrau 2.
+    sms-resend-limit: ${DELIVERY_SMS_RESEND_LIMIT:2}
+    # RF-16.5: pontos da penalidade objetiva ao estabelecimento por contingência atribuída a ele.
+    penalty-points: ${DELIVERY_PENALTY_POINTS:10}
+    # RF-17.6: janela de contestação até a consolidação automática.
+    contestable-window: ${DELIVERY_CONTESTABLE_WINDOW:P1D}
   orders:
     # RF-11.11: raio único na v1 (ajuste por região é fase 2) — calibrar contra densidade real.
     eligibility-radius-km: ${ORDERS_ELIGIBILITY_RADIUS_KM:10}
@@ -86,3 +100,13 @@ app:
     # RF-10.7: idade máxima de uma posição para ela ainda valer como "recente" (elegibilidade, ficar
     # disponível) e TTL da réplica no Redis. Sugestão inicial da task: 5 min.
     freshness: ${PRESENCE_FRESHNESS:PT5M}
+  reviews:
+    # RF-19: mesmo prazo do risco documentado na task — alinhado à janela de contestação (T-17) para
+    # os dois ciclos fecharem juntos.
+    window: ${REVIEWS_WINDOW:P1D}
+    comment-max-length: ${REVIEWS_COMMENT_MAX_LENGTH:500}
+  score:
+    # RF-20.10: pesos versionados — mudar o valor aqui é uma nova versão, registrada no componente.
+    weights-version: ${SCORE_WEIGHTS_VERSION:v1}
+    # RF-19.6: avaliação automática (padrão positivo) pesa menos que uma opinião real.
+    inactive-review-weight: ${SCORE_INACTIVE_REVIEW_WEIGHT:0.3}

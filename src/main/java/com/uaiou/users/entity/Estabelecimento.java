@@ -8,7 +8,10 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "estabelecimento")
@@ -42,6 +45,13 @@ public class Estabelecimento {
   private String cep;
 
   private BigDecimal score;
+
+  @Column(name = "score_componentes")
+  @JdbcTypeCode(SqlTypes.JSON)
+  private String scoreComponentes;
+
+  @Column(name = "score_calculado_em")
+  private Instant scoreCalculadoEm;
 
   protected Estabelecimento() {
     // exigido pela JPA
@@ -91,6 +101,24 @@ public class Estabelecimento {
 
   public BigDecimal getScore() {
     return score;
+  }
+
+  public String getScoreComponentes() {
+    return scoreComponentes;
+  }
+
+  public Instant getScoreCalculadoEm() {
+    return scoreCalculadoEm;
+  }
+
+  /**
+   * RF-20.3/RF-20.4 — valor e componentes são gravados JUNTOS, na mesma escrita: expor o número sem
+   * os componentes violaria a RN-04.1. {@code null} é legítimo (RF-20.9: sem base), não um erro.
+   */
+  public void atualizarScore(BigDecimal valor, String componentesJson, Instant calculadoEm) {
+    this.score = valor;
+    this.scoreComponentes = componentesJson;
+    this.scoreCalculadoEm = calculadoEm;
   }
 
   /** Campo livre (RF-04.3, T-04) — aplica direto, sem passar por moderação. */

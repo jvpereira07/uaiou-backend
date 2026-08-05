@@ -78,6 +78,9 @@ public class Pedido {
   @Column(name = "finalizado_em")
   private Instant finalizadoEm;
 
+  @Column(name = "contestavel_liberado")
+  private boolean contestavelLiberado;
+
   @CreationTimestamp
   @Column(name = "criado_em")
   private Instant criadoEm;
@@ -218,9 +221,35 @@ public class Pedido {
     return aceitoEm;
   }
 
+  /**
+   * RF-14.6 — aceitar contraoferta atribui pelo <strong>valor proposto</strong>, não pelo frete
+   * original: é essa diferença de valor final que distingue este caminho de {@link
+   * #aceitarPor(UUID)}.
+   */
+  public void aceitarPorContraoferta(UUID entregadorId, Money valorProposto) {
+    this.entregadorId = entregadorId;
+    this.freteFinal = valorProposto;
+    this.status = OrderStatus.ACCEPTED;
+    this.aceitoEm = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+  }
+
   /** RF-11.3 — último passo da transação de criação, depois do crédito já debitado. */
   public void publicar() {
     this.status = OrderStatus.PUBLISHED;
+  }
+
+  /** RF-14.1 — negociar não reserva (RF-14.3): o pedido segue visível e aceitável por outros. */
+  public void iniciarNegociacao() {
+    if (this.status == OrderStatus.PUBLISHED) {
+      this.status = OrderStatus.IN_NEGOTIATION;
+    }
+  }
+
+  /** RF-14.7 — recusa sem outra pendente devolve o pedido ao estado de "aceitável direto". */
+  public void voltarAPublicado() {
+    if (this.status == OrderStatus.IN_NEGOTIATION) {
+      this.status = OrderStatus.PUBLISHED;
+    }
   }
 
   /** Visível ao entregador elegível na vitrine (RF-11.6): publicado ou já em negociação. */
@@ -234,5 +263,49 @@ public class Pedido {
 
   public boolean estaAtribuidoA(UUID entregadorId) {
     return this.entregadorId != null && this.entregadorId.equals(entregadorId);
+  }
+
+  public Instant getFinalizadoEm() {
+    return finalizadoEm;
+  }
+
+  public boolean isContestavelLiberado() {
+    return contestavelLiberado;
+  }
+
+  /** RF-15.9 — finalização por código: prova forte, sem intermediário. */
+  public void finalizar() {
+    this.status = OrderStatus.FINALIZED;
+    this.finalizadoEm = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+  }
+
+  /**
+   * RF-17.4 — finalização com evidência reforçada (foto), quando o código não pôde ser validado.
+   */
+  public void finalizarContestavel() {
+    this.status = OrderStatus.CONTESTABLE_FINALIZED;
+    this.finalizadoEm = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+  }
+
+  /**
+   * RF-17.6 — job de consolidação da janela: sem contestação no prazo, o pedido vira o mesmo estado
+   * final de uma entrega por código. Não mexe em {@code finalizadoEm}: a entrega já aconteceu
+   * naquele instante, a consolidação só resolve a pendência administrativa.
+   */
+  public void consolidarContestavelEmFinalizado() {
+    this.status = OrderStatus.FINALIZED;
+  }
+
+  /**
+   * RF-16.5/RF-17.1 — escrito pelo SERVIDOR (a escada de contingência, T-16), nunca pelo cliente: é
+   * o que impede o entregador de pular a validação por conveniência (RN-10.1).
+   */
+  public void liberarContestavel() {
+    this.contestavelLiberado = true;
+  }
+
+  /** RF-16.4 — o estabelecimento corrige um pedido que nasceu sem telefone do recebedor. */
+  public void atualizarTelefoneRecebedor(String telefone) {
+    this.recebedorTelefone = telefone;
   }
 }
