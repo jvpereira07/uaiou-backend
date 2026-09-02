@@ -53,6 +53,13 @@ logging:
     root: INFO
 
 app:
+  cors:
+    # RF-A13.1 — origens que podem chamar a API de dentro de um navegador. Só afeta cliente web
+    # (Flutter Web em desenvolvimento e o painel Next.js); Android e iOS não passam por CORS.
+    # Explícito por ambiente, NUNCA "*". Em produção, vem da variável com os domínios reais.
+    # O Flutter escolhe uma porta aleatória se `flutter run` não receber --web-port: fixe a porta
+    # ao rodar, senão a origem muda a cada execução e cai fora desta lista.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5500,http://localhost:8123,http://localhost:3000}
   jwt:
     secret: ${JWT_SECRET}
     access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
@@ -96,6 +103,25 @@ app:
   orders:
     # RF-11.11: raio único na v1 (ajuste por região é fase 2) — calibrar contra densidade real.
     eligibility-radius-km: ${ORDERS_ELIGIBILITY_RADIUS_KM:10}
+  routing:
+    # T-25 — rotas por via. Chave VAZIA é estado válido: o recurso desliga e a aplicação sobe igual
+    # (critério de aceite 6). Nunca versionar a chave: chave de rota no repositório é chave a revogar.
+    api-key: ${ROUTING_API_KEY:}
+    base-url: ${ROUTING_BASE_URL:https://api.geoapify.com}
+    # RF-25.2: o veículo real da praça.
+    mode: ${ROUTING_MODE:motorcycle}
+    language: ${ROUTING_LANGUAGE:pt}
+    # RNF-25.1: curto de propósito — a rota nunca pode segurar a resposta do entregador.
+    timeout: ${ROUTING_TIMEOUT:PT3S}
+    # RF-25.9: a perna estabelecimento → destino não muda enquanto o pedido existir; o TTL só evita
+    # que a entrada viva para sempre no Redis.
+    delivery-cache-ttl: ${ROUTING_DELIVERY_CACHE_TTL:P7D}
+    # RF-25.9: a perna que varia com a posição de quem pergunta. Calibrar com consumo real (RF-25.11).
+    pickup-cache-ttl: ${ROUTING_PICKUP_CACHE_TTL:PT5M}
+    # Casas decimais no arredondamento da posição do entregador na chave de cache (3 ≈ 110 m).
+    pickup-coordinate-scale: ${ROUTING_PICKUP_COORDINATE_SCALE:3}
+    # RNF-25.2: atribuição exigida pela licença do plano gratuito — obrigação, não escolha de layout.
+    attribution: ${ROUTING_ATTRIBUTION:Powered by Geoapify · © OpenStreetMap contributors}
   presence:
     # RF-10.7: idade máxima de uma posição para ela ainda valer como "recente" (elegibilidade, ficar
     # disponível) e TTL da réplica no Redis. Sugestão inicial da task: 5 min.

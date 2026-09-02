@@ -118,6 +118,8 @@ class UploadReadAndAuthorizationIntegrationTest extends AbstractAuthIntegrationT
                 null,
                 null,
                 null,
+                null,
+                null,
                 null));
     ResponseEntity<ErrorResponse> response =
         restTemplate.exchange(

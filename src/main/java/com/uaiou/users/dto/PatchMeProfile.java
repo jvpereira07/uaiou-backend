@@ -1,5 +1,6 @@
 package com.uaiou.users.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -23,4 +24,6 @@ public record PatchMeProfile(
     String rua,
     String numero,
     String cidade,
-    String cep) {}
+    String cep,
+    BigDecimal lat,
+    BigDecimal lng) {}

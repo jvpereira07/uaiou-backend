@@ -44,6 +44,11 @@ public class Estabelecimento {
 
   private String cep;
 
+  private BigDecimal lat;
+
+  @Column(name = "long")
+  private BigDecimal longitude;
+
   private BigDecimal score;
 
   @Column(name = "score_componentes")
@@ -99,6 +104,14 @@ public class Estabelecimento {
     return cep;
   }
 
+  public BigDecimal getLat() {
+    return lat;
+  }
+
+  public BigDecimal getLongitude() {
+    return longitude;
+  }
+
   public BigDecimal getScore() {
     return score;
   }
@@ -133,7 +146,13 @@ public class Estabelecimento {
    * bairro/rua/número/cidade.
    */
   public void atualizarEndereco(
-      String bairro, String rua, String numero, String cidade, String cep) {
+      String bairro,
+      String rua,
+      String numero,
+      String cidade,
+      String cep,
+      BigDecimal lat,
+      BigDecimal longitude) {
     if (bairro != null) {
       this.bairro = bairro;
     }
@@ -148,6 +167,12 @@ public class Estabelecimento {
     }
     if (cep != null) {
       this.cep = cep;
+    }
+    // Par: só faz sentido substituir os dois juntos — uma coordenada sem a outra não aponta
+    // para lugar nenhum. O controlador (PATCH /me) já exige isso do cliente antes de chegar aqui.
+    if (lat != null && longitude != null) {
+      this.lat = lat;
+      this.longitude = longitude;
     }
   }
 }

@@ -162,6 +162,11 @@ public class ProfileService {
             || profile.vehiclePlate() != null
             || profile.vehicleUploadId() != null);
 
+    if ((profile.lat() == null) != (profile.lng() == null)) {
+      throw new BadRequestException(
+          "INCOMPLETE_COORDINATES", "\"lat\" e \"lng\" precisam ser enviados juntos.");
+    }
+
     rejectOrphanUploadId(profile.cnpjUploadId(), profile.cnpj() != null, "cnpjUploadId", "cnpj");
 
     Estabelecimento estabelecimento = requireEstabelecimento(usuario);
@@ -183,10 +188,18 @@ public class ProfileService {
             || profile.rua() != null
             || profile.numero() != null
             || profile.cidade() != null
-            || profile.cep() != null;
+            || profile.cep() != null
+            || profile.lat() != null
+            || profile.lng() != null;
     if (addressProvided) {
       estabelecimento.atualizarEndereco(
-          profile.bairro(), profile.rua(), profile.numero(), profile.cidade(), profile.cep());
+          profile.bairro(),
+          profile.rua(),
+          profile.numero(),
+          profile.cidade(),
+          profile.cep(),
+          profile.lat(),
+          profile.lng());
     }
 
     return pending;
@@ -335,7 +348,9 @@ public class ProfileService {
         && estabelecimento.getRua() == null
         && estabelecimento.getNumero() == null
         && estabelecimento.getCidade() == null
-        && estabelecimento.getCep() == null) {
+        && estabelecimento.getCep() == null
+        && estabelecimento.getLat() == null
+        && estabelecimento.getLongitude() == null) {
       return null;
     }
     return new Address(
@@ -343,7 +358,9 @@ public class ProfileService {
         estabelecimento.getRua(),
         estabelecimento.getNumero(),
         estabelecimento.getCidade(),
-        estabelecimento.getCep());
+        estabelecimento.getCep(),
+        estabelecimento.getLat(),
+        estabelecimento.getLongitude());
   }
 
   /** RF-04.2 — a tela inicial do cliente nasce destes links, não de lógica espalhada no app. */

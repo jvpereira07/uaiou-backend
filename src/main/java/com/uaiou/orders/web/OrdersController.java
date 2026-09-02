@@ -2,6 +2,7 @@ package com.uaiou.orders.web;
 
 import com.uaiou.auth.web.AuthenticatedUser;
 import com.uaiou.auth.web.CurrentUserHolder;
+import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.dto.AssignmentResponse;
 import com.uaiou.orders.dto.CreateOrderRequest;
 import com.uaiou.orders.dto.OrderListResponse;
@@ -85,7 +86,7 @@ public class OrdersController {
     }
     if (STATUS_DO_ENTREGADOR.contains(recorte)) {
       return orderService.listAssignedToCourier(
-          user.userId(), paging, "/api/v1/orders?status=" + recorte);
+          user.userId(), statusesDoRecorte(recorte), paging, "/api/v1/orders?status=" + recorte);
     }
     throw new BadRequestException(
         "UNSUPPORTED_STATUS", "\"" + recorte + "\" não é um filtro válido para este papel.");
@@ -118,5 +119,18 @@ public class OrdersController {
           "ROLE_NOT_SUPPORTED", "Esta rota é de estabelecimento ou entregador.");
     }
     return orderService.get(user.userId(), user.role() == Role.COURIER, id);
+  }
+
+  /**
+   * Traduz o recorte do cliente para os status do domínio.
+   *
+   * <p>{@code finalized} abrange também {@code contestable_finalized}: para quem entregou, os dois
+   * são "já entreguei" — a contestação é assunto do estabelecimento. Já {@code accepted} é
+   * estritamente a entrega em curso, e é dessa exatidão que a tela principal depende.
+   */
+  private static List<OrderStatus> statusesDoRecorte(String recorte) {
+    return "accepted".equals(recorte)
+        ? List.of(OrderStatus.ACCEPTED)
+        : List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
   }
 }

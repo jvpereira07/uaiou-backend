@@ -67,6 +67,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null));
     ResponseEntity<MeResponse> response = patchMe(session.accessToken(), request);
 
@@ -94,6 +96,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 null,
                 "99999999000199",
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -130,6 +134,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null));
     ResponseEntity<ErrorResponse> response = patchMeExpectingError(accessToken, request);
 
@@ -155,6 +161,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 "99999999000199",
                 uploadId,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -190,6 +198,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null));
     ResponseEntity<MeResponse> firstResponse = patchMe(accessToken, firstRequest);
     assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -201,6 +211,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
             new PatchMeProfile(
                 "55566677788",
                 uploadId,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -231,7 +243,7 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
             null,
             new PatchMeProfile(
                 null, null, "CAR", "XYZ9K88", uploadId, null, null, null, null, null, null, null,
-                null));
+                null, null, null));
     ResponseEntity<MeResponse> response = patchMe(accessToken, request);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -250,6 +262,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
             null,
             new PatchMeProfile(
                 "11122233344",
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -290,6 +304,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null));
     ResponseEntity<ErrorResponse> response = patchMeExpectingError(accessToken, request);
 
@@ -319,7 +335,9 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 "Rua das Flores",
                 "100",
                 "Belo Horizonte",
-                "30130000"));
+                "30130000",
+                null,
+                null));
     ResponseEntity<MeResponse> response = patchMe(accessToken, request);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -352,7 +370,9 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 "Rua das Flores",
                 "100",
                 "Belo Horizonte",
-                "30130000")));
+                "30130000",
+                null,
+                null)));
 
     // Só o CEP muda desta vez — bairro/rua/número/cidade não foram enviados e precisam permanecer.
     ResponseEntity<MeResponse> response =
@@ -374,7 +394,9 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                     null,
                     null,
                     null,
-                    "30140000")));
+                    "30140000",
+                    null,
+                    null)));
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     Address address = response.getBody().profile().address();
@@ -383,6 +405,70 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(address.rua()).isEqualTo("Rua das Flores");
     assertThat(address.numero()).isEqualTo("100");
     assertThat(address.cidade()).isEqualTo("Belo Horizonte");
+  }
+
+  @Test
+  void merchantAddressCoordinatesArePersisted() {
+    RegisteredTestUser user = registerAndActivateMerchant();
+    String accessToken = login(user).accessToken();
+
+    PatchMeRequest request =
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "Centro",
+                "Rua das Flores",
+                "100",
+                "Belo Horizonte",
+                "30130000",
+                new java.math.BigDecimal("-19.925100"),
+                new java.math.BigDecimal("-43.941700")));
+    ResponseEntity<MeResponse> response = patchMe(accessToken, request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    Address address = response.getBody().profile().address();
+    assertThat(address.lat()).isEqualByComparingTo("-19.925100");
+    assertThat(address.lng()).isEqualByComparingTo("-43.941700");
+  }
+
+  @Test
+  void merchantAddressCoordinatesRequireBothFieldsTogether() {
+    RegisteredTestUser user = registerAndActivateMerchant();
+    String accessToken = login(user).accessToken();
+
+    PatchMeRequest request =
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new java.math.BigDecimal("-19.925100"),
+                null));
+    ResponseEntity<ErrorResponse> response = patchMeExpectingError(accessToken, request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().error().code()).isEqualTo("INCOMPLETE_COORDINATES");
   }
 
   @Test
@@ -396,7 +482,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
             null,
             null,
             new PatchMeProfile(
-                null, null, null, null, uploadId, null, null, null, null, null, null, null, null));
+                null, null, null, null, uploadId, null, null, null, null, null, null, null, null,
+                null, null));
     ResponseEntity<ErrorResponse> response = patchMeExpectingError(accessToken, request);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -423,6 +510,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 "99999999000199",
                 uploadId,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -462,6 +551,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null)));
     UUID firstDocumentId =
         documentoCadastroRepository
@@ -486,6 +577,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
                     null,
                     "99999999000199",
                     secondUploadId,
+                    null,
+                    null,
                     null,
                     null,
                     null,

@@ -196,14 +196,23 @@ public class OrderService {
     return OrderListResponse.de(Paginator.paginate(content, todos.size(), paging, baseUri), null);
   }
 
+  /**
+   * RF-11.6 — os atribuídos do entregador, no recorte pedido.
+   *
+   * <p>O {@code recorte} não é enfeite: ignorá-lo devolvia a entrega já finalizada dentro da lista
+   * de {@code accepted}, e o app trata o primeiro item dessa lista como "entrega em andamento"
+   * (RF-A08.9) — o entregador que acabara de entregar era jogado de volta na tela da entrega
+   * concluída ao voltar para a principal. {@code null} mantém o comportamento antigo de trazer
+   * todos os status do entregador.
+   */
   @Transactional(readOnly = true)
   public OrderListResponse listAssignedToCourier(
-      UUID entregadorId, PagingRequest paging, String baseUri) {
+      UUID entregadorId, List<OrderStatus> recorte, PagingRequest paging, String baseUri) {
+    List<OrderStatus> statuses =
+        recorte == null || recorte.isEmpty() ? STATUS_DO_ENTREGADOR : recorte;
     Page<Pedido> page =
         pedidoRepository.findByEntregadorIdAndStatusInOrderByCriadoEmDesc(
-            entregadorId,
-            STATUS_DO_ENTREGADOR,
-            PageRequest.of(paging.page() - 1, paging.perPage()));
+            entregadorId, statuses, PageRequest.of(paging.page() - 1, paging.perPage()));
 
     List<OrderSummary> content =
         page.getContent().stream()

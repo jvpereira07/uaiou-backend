@@ -250,7 +250,9 @@ public class SupervisionService {
         && estabelecimento.getRua() == null
         && estabelecimento.getNumero() == null
         && estabelecimento.getCidade() == null
-        && estabelecimento.getCep() == null) {
+        && estabelecimento.getCep() == null
+        && estabelecimento.getLat() == null
+        && estabelecimento.getLongitude() == null) {
       return null;
     }
     return new Address(
@@ -258,7 +260,9 @@ public class SupervisionService {
         estabelecimento.getRua(),
         estabelecimento.getNumero(),
         estabelecimento.getCidade(),
-        estabelecimento.getCep());
+        estabelecimento.getCep(),
+        estabelecimento.getLat(),
+        estabelecimento.getLongitude());
   }
 
   private SanctionSummary toSanctionSummary(Sancao sancao) {

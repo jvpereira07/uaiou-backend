@@ -16,6 +16,8 @@
 	<description>API do UaiOu — marketplace de redirecionamento de entregas entre estabelecimentos e entregadores</description>
 
 	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>25</java.version>
 		<archunit.version>1.4.2</archunit.version>
 		<logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
