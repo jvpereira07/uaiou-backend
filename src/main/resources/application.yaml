@@ -53,6 +53,15 @@ logging:
     root: INFO
 
 app:
+  admin-bootstrap:
+    # Admin criado no primeiro boot de um banco vazio (nenhuma migration insere dados e o
+    # autorregistro recusa ADMIN). Defaults triviais de propósito: um ambiente local sobe sem
+    # configuração. Em produção são credenciais publicamente conhecidas — trocar a senha no
+    # primeiro acesso faz parte de subir o serviço.
+    email: ${ADMIN_DEFAULT_EMAIL:admin}
+    password: ${ADMIN_DEFAULT_PASS:admin}
+    login: ${ADMIN_DEFAULT_LOGIN:admin}
+    nivel: ${ADMIN_DEFAULT_NIVEL:pleno}
   cors:
     # RF-A13.1 — origens que podem chamar a API de dentro de um navegador. Só afeta cliente web
     # (Flutter Web em desenvolvimento e o painel Next.js); Android e iOS não passam por CORS.

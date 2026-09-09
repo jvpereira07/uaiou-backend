@@ -32,6 +32,11 @@ public class Admin {
     // exigido pela JPA
   }
 
+  public Admin(Usuario usuario, String nivel) {
+    this.usuario = usuario;
+    this.nivel = nivel;
+  }
+
   public UUID getUsuarioId() {
     return usuarioId;
   }
