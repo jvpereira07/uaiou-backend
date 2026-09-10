@@ -115,6 +115,7 @@ public class SupervisionService {
         usuario.getTipo(),
         usuario.getStatus(),
         usuario.getNomeExibicao(),
+        usuario.getLogin(),
         usuario.getEmail(),
         usuario.getTelefone(),
         profile,

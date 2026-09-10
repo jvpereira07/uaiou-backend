@@ -14,6 +14,8 @@ public record AdminUserDetail(
     Role role,
     UserStatus status,
     String displayName,
+    /** O {@code login} da conta — identidade estável, ao contrário do nome de exibição. */
+    String username,
     String email,
     String telefone,
     MeProfile profile,
