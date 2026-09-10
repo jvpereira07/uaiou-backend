@@ -112,6 +112,16 @@ app:
   orders:
     # RF-11.11: raio único na v1 (ajuste por região é fase 2) — calibrar contra densidade real.
     eligibility-radius-km: ${ORDERS_ELIGIBILITY_RADIUS_KM:10}
+  geocoding:
+    # Salto coordenada → CEP dos seletores de endereço no mapa (app e web). Mesma conta Geoapify
+    # de `routing`: por padrão herda ROUTING_API_KEY, porque duplicar a variável convidaria alguém
+    # a girar uma chave e esquecer a outra. GEOCODING_API_KEY existe para separar as cotas depois.
+    # Chave VAZIA desliga o recurso, como em rotas — o formulário pede preenchimento à mão.
+    api-key: ${GEOCODING_API_KEY:${ROUTING_API_KEY:}}
+    base-url: ${GEOCODING_BASE_URL:https://api.geoapify.com}
+    language: ${GEOCODING_LANGUAGE:pt}
+    # Curto pelo mesmo motivo de RNF-25.1: alguém está com um formulário aberto esperando.
+    timeout: ${GEOCODING_TIMEOUT:PT3S}
   routing:
     # T-25 — rotas por via. Chave VAZIA é estado válido: o recurso desliga e a aplicação sobe igual
     # (critério de aceite 6). Nunca versionar a chave: chave de rota no repositório é chave a revogar.
