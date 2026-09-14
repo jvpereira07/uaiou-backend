@@ -1,5 +1,6 @@
 package com.uaiou.users.dto;
 
+import com.uaiou.users.PaymentMethod;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -26,4 +27,43 @@ public record PatchMeProfile(
     String cidade,
     String cep,
     BigDecimal lat,
-    BigDecimal lng) {}
+    BigDecimal lng,
+    // Entregador — livre
+    PaymentMethod paymentMethod) {
+
+  /** Formato anterior à forma de pagamento — mantido para quem não mexe nela. */
+  public PatchMeProfile(
+      String cpf,
+      UUID identityUploadId,
+      String vehicleType,
+      String vehiclePlate,
+      UUID vehicleUploadId,
+      String cnpj,
+      UUID cnpjUploadId,
+      String logoObjectKey,
+      String bairro,
+      String rua,
+      String numero,
+      String cidade,
+      String cep,
+      BigDecimal lat,
+      BigDecimal lng) {
+    this(
+        cpf,
+        identityUploadId,
+        vehicleType,
+        vehiclePlate,
+        vehicleUploadId,
+        cnpj,
+        cnpjUploadId,
+        logoObjectKey,
+        bairro,
+        rua,
+        numero,
+        cidade,
+        cep,
+        lat,
+        lng,
+        null);
+  }
+}

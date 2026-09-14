@@ -150,6 +150,10 @@ public class ProfileService {
       }
     }
 
+    if (profile.paymentMethod() != null) {
+      requireEntregador(usuario).atualizarFormaPagamento(profile.paymentMethod());
+    }
+
     return pending;
   }
 
@@ -160,7 +164,8 @@ public class ProfileService {
             || profile.identityUploadId() != null
             || profile.vehicleType() != null
             || profile.vehiclePlate() != null
-            || profile.vehicleUploadId() != null);
+            || profile.vehicleUploadId() != null
+            || profile.paymentMethod() != null);
 
     if ((profile.lat() == null) != (profile.lng() == null)) {
       throw new BadRequestException(
@@ -314,7 +319,8 @@ public class ProfileService {
         null,
         null,
         null,
-        entregador.getScore());
+        entregador.getScore(),
+        entregador.getFormaPagamento());
   }
 
   /**
@@ -340,7 +346,8 @@ public class ProfileService {
         estabelecimento.getNomeFantasia(),
         estabelecimento.getLogoObjectKey(),
         buildAddress(estabelecimento),
-        estabelecimento.getScore());
+        estabelecimento.getScore(),
+        null);
   }
 
   private Address buildAddress(Estabelecimento estabelecimento) {

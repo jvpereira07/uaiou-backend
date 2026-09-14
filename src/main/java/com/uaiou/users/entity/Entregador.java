@@ -1,5 +1,6 @@
 package com.uaiou.users.entity;
 
+import com.uaiou.users.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -65,6 +66,9 @@ public class Entregador {
 
   @Column(name = "entregas_realizadas")
   private int entregasRealizadas;
+
+  @Column(name = "forma_pagamento")
+  private PaymentMethod formaPagamento;
 
   protected Entregador() {
     // exigido pela JPA
@@ -188,6 +192,15 @@ public class Entregador {
   public void ficarIndisponivel() {
     this.disponivel = false;
     this.disponivelDesde = null;
+  }
+
+  public PaymentMethod getFormaPagamento() {
+    return formaPagamento;
+  }
+
+  /** Campo livre do perfil — não passa por moderação. */
+  public void atualizarFormaPagamento(PaymentMethod formaPagamento) {
+    this.formaPagamento = formaPagamento;
   }
 
   /** RF-15.9/RF-17.4 — contador de entregas concluídas, por código ou contestável. */

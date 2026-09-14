@@ -228,7 +228,8 @@ public class SupervisionService {
         null,
         null,
         null,
-        entregador.getScore());
+        entregador.getScore(),
+        entregador.getFormaPagamento());
   }
 
   private MeProfile buildMerchantProfile(Estabelecimento estabelecimento) {
@@ -243,7 +244,8 @@ public class SupervisionService {
         estabelecimento.getNomeFantasia(),
         estabelecimento.getLogoObjectKey(),
         buildAddress(estabelecimento),
-        estabelecimento.getScore());
+        estabelecimento.getScore(),
+        null);
   }
 
   private Address buildAddress(Estabelecimento estabelecimento) {
