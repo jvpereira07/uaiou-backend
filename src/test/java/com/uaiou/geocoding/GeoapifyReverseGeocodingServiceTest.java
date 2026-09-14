@@ -75,7 +75,8 @@ class GeoapifyReverseGeocodingServiceTest {
   @Test
   void aPostalCodeThatIsNotEightDigitsIsDiscardedRatherThanPassedOn() {
     Resultado resultado =
-        responder("""
+        responder(
+            """
             {"results":[{"postcode":"1234","city":"Lisboa","street":"Rua Augusta"}]}
             """);
 
@@ -94,7 +95,8 @@ class GeoapifyReverseGeocodingServiceTest {
   void aProviderFailureBecomesAnEmptyAnswerNotAnException() {
     RestClient.Builder builder = RestClient.builder().baseUrl("https://api.geoapify.com");
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    server.expect(requestTo(org.hamcrest.Matchers.containsString("/v1/geocode/reverse")))
+    server
+        .expect(requestTo(org.hamcrest.Matchers.containsString("/v1/geocode/reverse")))
         .andRespond(withServerError());
 
     GeoapifyReverseGeocodingService service =
@@ -108,8 +110,7 @@ class GeoapifyReverseGeocodingServiceTest {
     RestClient.Builder builder = RestClient.builder().baseUrl("https://api.geoapify.com");
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
     server
-        .expect(
-            MockRestRequestMatchers.queryParam("lat", "-23.545513"))
+        .expect(MockRestRequestMatchers.queryParam("lat", "-23.545513"))
         .andExpect(MockRestRequestMatchers.queryParam("lon", "-46.632791"))
         .andExpect(MockRestRequestMatchers.queryParam("apiKey", "chave-de-teste"))
         .andExpect(MockRestRequestMatchers.queryParam("lang", "pt"))

@@ -1,9 +1,9 @@
 package com.uaiou.geocoding.service;
 
-import com.uaiou.geocoding.ReverseGeocodingService;
-import com.uaiou.geocoding.config.ReverseGeocodingProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.uaiou.geocoding.ReverseGeocodingService;
+import com.uaiou.geocoding.config.ReverseGeocodingProperties;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -21,8 +21,7 @@ import org.springframework.web.client.RestClient;
  */
 public class GeoapifyReverseGeocodingService implements ReverseGeocodingService {
 
-  private static final Logger log =
-      LoggerFactory.getLogger(GeoapifyReverseGeocodingService.class);
+  private static final Logger log = LoggerFactory.getLogger(GeoapifyReverseGeocodingService.class);
 
   private final RestClient restClient;
   private final ReverseGeocodingProperties properties;
@@ -108,9 +107,9 @@ public class GeoapifyReverseGeocodingService implements ReverseGeocodingService 
 
   /**
    * {@code state_code} é a sigla da UF, mas só vem no resultado de origem OpenStreetMap. No de
-   * origem OpenAddresses o campo some e {@code state} traz a <em>região</em> ("Sudeste") — é
-   * {@code county_code} que carrega a sigla ali. Sem este segundo caminho, endereço de cidade
-   * pequena voltaria sempre sem UF.
+   * origem OpenAddresses o campo some e {@code state} traz a <em>região</em> ("Sudeste") — é {@code
+   * county_code} que carrega a sigla ali. Sem este segundo caminho, endereço de cidade pequena
+   * voltaria sempre sem UF.
    */
   private String estado(Result resultado) {
     String sigla = emBranco(resultado.stateCode());
