@@ -6,6 +6,7 @@ import com.uaiou.delivery.entity.ContingenciaOtp;
 import com.uaiou.delivery.entity.Otp;
 import com.uaiou.delivery.repository.ContingenciaOtpRepository;
 import com.uaiou.delivery.repository.OtpRepository;
+import com.uaiou.delivery.service.DeliveryCodeService;
 import com.uaiou.delivery.service.GeofenceEvaluator;
 import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.dto.DeliveryStateResponse;
@@ -91,6 +92,7 @@ public class DeliveryStateService {
             : new DeliveryStateResponse.DeliveryCode(
                 otp.getStatus(),
                 Math.max(0, properties.maxAttempts() - otp.getTentativas()),
+                DeliveryCodeService.DIGITOS,
                 List.of("sms", "merchant")),
         contingency,
         links);

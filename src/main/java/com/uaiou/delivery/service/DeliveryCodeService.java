@@ -29,7 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DeliveryCodeService {
 
-  private static final int DIGITOS = 6;
+  /**
+   * Tamanho do código. Público porque o <strong>cliente não pode fixar este número</strong>: a tela
+   * do entregador tinha 4 escrito à mão e recusava o código real de 6 antes mesmo de enviá-lo. O
+   * estado da entrega (T-15) devolve este valor, e mudar aqui passa a bastar.
+   */
+  public static final int DIGITOS = 6;
 
   private final OtpRepository otpRepository;
   private final DeliveryCodeCipher cipher;

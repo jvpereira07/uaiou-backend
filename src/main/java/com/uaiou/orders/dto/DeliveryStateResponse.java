@@ -29,7 +29,12 @@ public record DeliveryStateResponse(
   public record Geofence(
       boolean inside, double radiusMeters, Double distanceMeters, String reason) {}
 
-  public record DeliveryCode(DeliveryCodeStatus status, int attemptsLeft, List<String> channels) {}
+  /**
+   * {@code length} é quantos dígitos o código tem. Vai na resposta para o app parar de decidir isso
+   * sozinho: cliente com o tamanho fixo recusa o código válido quando o servidor muda de ideia.
+   */
+  public record DeliveryCode(
+      DeliveryCodeStatus status, int attemptsLeft, int length, List<String> channels) {}
 
   public record Contingency(
       Integer step, boolean contestableReleased, Instant merchantDeadlineAt) {}
