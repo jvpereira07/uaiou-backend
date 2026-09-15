@@ -67,13 +67,14 @@ public class DeliveryStateService {
     Map<String, LinkRef> links = new LinkedHashMap<>();
     links.put("self", LinkRef.get("/api/v1/orders/" + pedidoId + "/delivery"));
     links.put("order", LinkRef.get("/api/v1/orders/" + pedidoId));
-    if (geofence.inside() && pedido.getStatus() == OrderStatus.ACCEPTED) {
+    // RF-26.12 — finalizar e acionar contingência só depois da coleta.
+    if (geofence.inside() && pedido.getStatus() == OrderStatus.PICKED_UP) {
       links.put("completion", LinkRef.get("/api/v1/orders/" + pedidoId + "/delivery/completion"));
       links.put(
           "codeRecoveries",
           LinkRef.get("/api/v1/orders/" + pedidoId + "/delivery/code-recoveries"));
     }
-    if (pedido.isContestavelLiberado() && pedido.getStatus() == OrderStatus.ACCEPTED) {
+    if (pedido.isContestavelLiberado() && pedido.getStatus() == OrderStatus.PICKED_UP) {
       links.put("completion", LinkRef.get("/api/v1/orders/" + pedidoId + "/delivery/completion"));
     }
 

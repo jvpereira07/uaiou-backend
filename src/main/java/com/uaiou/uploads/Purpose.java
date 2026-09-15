@@ -16,5 +16,7 @@ public enum Purpose {
   VEHICLE_DOCUMENT,
   MERCHANT_LOGO,
   DELIVERY_PROOF,
-  CNPJ_DOCUMENT
+  CNPJ_DOCUMENT,
+  /** V25 — foto de perfil do entregador. */
+  COURIER_PHOTO
 }

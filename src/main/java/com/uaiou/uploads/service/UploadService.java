@@ -52,6 +52,23 @@ public class UploadService {
   private static final long CREATE_URL_EXPIRY_MINUTES = 15;
   private static final long READ_URL_EXPIRY_MINUTES = 5;
 
+  /**
+   * Foto de perfil e logo aparecem em listas e avisos que ficam abertos na tela: 5 minutos venceria
+   * a imagem antes de o usuário terminar de olhar para ela.
+   */
+  private static final long IMAGE_URL_EXPIRY_MINUTES = 60;
+
+  /**
+   * URL de leitura de uma imagem de perfil já vinculada (foto do entregador, logo do
+   * estabelecimento). Nula quando não há imagem — quem chama não precisa testar antes.
+   */
+  public String urlDeImagem(String objectKey) {
+    if (objectKey == null || objectKey.isBlank()) {
+      return null;
+    }
+    return presignedUrl(publicMinioClient, objectKey, Method.GET, IMAGE_URL_EXPIRY_MINUTES);
+  }
+
   private final UploadRepository uploadRepository;
   private final InternalMinioClient internalMinioClient;
   private final PublicMinioClient publicMinioClient;

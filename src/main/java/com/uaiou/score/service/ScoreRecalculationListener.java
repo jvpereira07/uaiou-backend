@@ -1,6 +1,7 @@
 package com.uaiou.score.service;
 
 import com.uaiou.orders.DeliveryFinalizedEvent;
+import com.uaiou.orders.OrderLifecycleEvents;
 import com.uaiou.orders.entity.Pedido;
 import com.uaiou.orders.repository.PedidoRepository;
 import com.uaiou.reviews.ReviewCreatedEvent;
@@ -47,5 +48,12 @@ public class ScoreRecalculationListener {
       return;
     }
     scoreCalculationService.recalcularEntregador(pedido.getEntregadorId());
+  }
+
+  /** RF-26.31 — desistência é insumo da taxa de conclusão. */
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void aoDesistir(OrderLifecycleEvents.CourierWithdrew evento) {
+    scoreCalculationService.recalcularEntregador(evento.entregadorId());
   }
 }

@@ -260,6 +260,7 @@ class ReviewIntegrationTest extends AbstractAuthIntegrationTest {
             new HttpEntity<>(authHeaders(login(courier).accessToken())),
             AssignmentResponse.class);
     assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    marcarColetado(pedidoId);
   }
 
   private UUID finalizarPedido(RegisteredTestUser merchant, RegisteredTestUser courier) {

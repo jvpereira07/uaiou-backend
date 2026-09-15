@@ -2,6 +2,7 @@ package com.uaiou.score.service;
 
 import com.uaiou.delivery.repository.PenalidadeEstabelecimentoRepository;
 import com.uaiou.orders.OrderStatus;
+import com.uaiou.orders.repository.DesistenciaPedidoRepository;
 import com.uaiou.orders.repository.PedidoRepository;
 import com.uaiou.reviews.entity.Avaliacao;
 import com.uaiou.reviews.repository.AvaliacaoRepository;
@@ -34,7 +35,11 @@ import tools.jackson.databind.ObjectMapper;
 public class ScoreCalculationService {
 
   private static final List<OrderStatus> ENVOLVEM_ACEITE =
-      List.of(OrderStatus.ACCEPTED, OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
+      List.of(
+          OrderStatus.ACCEPTED,
+          OrderStatus.PICKED_UP,
+          OrderStatus.FINALIZED,
+          OrderStatus.CONTESTABLE_FINALIZED);
   private static final List<OrderStatus> FINALIZADOS =
       List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
 
@@ -50,6 +55,7 @@ public class ScoreCalculationService {
   private final PenalidadeEstabelecimentoRepository penalidadeRepository;
   private final ScoreProperties properties;
   private final ObjectMapper objectMapper;
+  private final DesistenciaPedidoRepository desistenciaRepository;
 
   public ScoreCalculationService(
       EntregadorRepository entregadorRepository,
@@ -58,7 +64,9 @@ public class ScoreCalculationService {
       PedidoRepository pedidoRepository,
       PenalidadeEstabelecimentoRepository penalidadeRepository,
       ScoreProperties properties,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      DesistenciaPedidoRepository desistenciaRepository) {
+    this.desistenciaRepository = desistenciaRepository;
     this.entregadorRepository = entregadorRepository;
     this.estabelecimentoRepository = estabelecimentoRepository;
     this.avaliacaoRepository = avaliacaoRepository;
@@ -86,8 +94,16 @@ public class ScoreCalculationService {
     BigDecimal avaliacaoValue = mediaPonderada(avaliacoes);
 
     List<OrderStatus> todosEnvolvidos = ENVOLVEM_ACEITE;
+    // RF-26.31 — desistência que conta é aceite não finalizado; depois da chegada pesa em dobro,
+    // porque a loja provavelmente já separou o pacote. O pedido desistido não está mais atribuído a
+    // ele, então o insumo vem do registro da desistência, não do pedido.
+    long pesoDesistencias =
+        desistenciaRepository.findByEntregadorIdAndContaPenalidadeTrue(entregadorId).stream()
+            .mapToLong(desistencia -> desistencia.getChegouEm() == null ? 1 : 2)
+            .sum();
     long aceitos =
-        pedidoRepository.findByEntregadorIdAndStatusIn(entregadorId, todosEnvolvidos).size();
+        pedidoRepository.findByEntregadorIdAndStatusIn(entregadorId, todosEnvolvidos).size()
+            + pesoDesistencias;
     long finalizados =
         pedidoRepository.findByEntregadorIdAndStatusIn(entregadorId, FINALIZADOS).size();
     BigDecimal conclusaoValue =

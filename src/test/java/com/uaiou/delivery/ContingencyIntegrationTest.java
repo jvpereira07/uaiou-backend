@@ -279,6 +279,7 @@ class ContingencyIntegrationTest extends AbstractAuthIntegrationTest {
             new HttpEntity<>(authHeaders(login(courier).accessToken())),
             AssignmentResponse.class);
     assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    marcarColetado(pedidoId);
     return pedidoId;
   }
 

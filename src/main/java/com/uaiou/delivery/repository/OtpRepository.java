@@ -10,4 +10,7 @@ public interface OtpRepository extends JpaRepository<Otp, UUID> {
   Optional<Otp> findByPedidoId(UUID pedidoId);
 
   boolean existsByPedidoId(UUID pedidoId);
+
+  /** RF-26.28 — desistência descarta o código; o próximo aceite gera outro. */
+  void deleteByPedidoId(UUID pedidoId);
 }

@@ -66,6 +66,7 @@ public class AssignmentService {
       return toResponse(pedido);
     }
     if (pedido.getStatus() == OrderStatus.ACCEPTED
+        || pedido.getStatus() == OrderStatus.PICKED_UP
         || pedido.getStatus() == OrderStatus.FINALIZED
         || pedido.getStatus() == OrderStatus.CONTESTABLE_FINALIZED) {
       throw new ConflictException(

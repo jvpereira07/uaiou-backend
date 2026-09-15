@@ -73,6 +73,10 @@ public class Entregador {
   @Column(name = "entregas_realizadas")
   private int entregasRealizadas;
 
+  /** V25 — chave da foto de perfil no armazenamento; a URL é gerada na leitura. */
+  @Column(name = "foto_object_key")
+  private String fotoObjectKey;
+
   // V23 — tabela própria: o entregador pode aceitar mais de uma forma.
   @ElementCollection
   @CollectionTable(
@@ -108,6 +112,15 @@ public class Entregador {
 
   public String getVeiculoPlaca() {
     return veiculoPlaca;
+  }
+
+  public String getFotoObjectKey() {
+    return fotoObjectKey;
+  }
+
+  /** Campo livre, sem moderação — mesmo tratamento do logo do estabelecimento. */
+  public void atualizarFoto(String fotoObjectKey) {
+    this.fotoObjectKey = fotoObjectKey;
   }
 
   public boolean isDisponivel() {

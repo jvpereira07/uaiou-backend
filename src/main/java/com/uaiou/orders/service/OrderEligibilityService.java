@@ -4,7 +4,9 @@ import com.uaiou.blocks.repository.BloqueioRepository;
 import com.uaiou.orders.Distances;
 import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.config.OrdersProperties;
+import com.uaiou.orders.entity.DesistenciaPedido;
 import com.uaiou.orders.entity.Pedido;
+import com.uaiou.orders.repository.DesistenciaPedidoRepository;
 import com.uaiou.orders.repository.PedidoRepository;
 import com.uaiou.presence.CourierPresence;
 import com.uaiou.presence.service.CourierPresenceService;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +44,7 @@ public class OrderEligibilityService {
   private final BloqueioRepository bloqueioRepository;
   private final CourierPresenceService courierPresenceService;
   private final OrdersProperties properties;
+  private final DesistenciaPedidoRepository desistenciaRepository;
 
   public OrderEligibilityService(
       PedidoRepository pedidoRepository,
@@ -48,7 +52,9 @@ public class OrderEligibilityService {
       UsuarioRepository usuarioRepository,
       BloqueioRepository bloqueioRepository,
       CourierPresenceService courierPresenceService,
-      OrdersProperties properties) {
+      OrdersProperties properties,
+      DesistenciaPedidoRepository desistenciaRepository) {
+    this.desistenciaRepository = desistenciaRepository;
     this.pedidoRepository = pedidoRepository;
     this.entregadorRepository = entregadorRepository;
     this.usuarioRepository = usuarioRepository;
@@ -116,9 +122,15 @@ public class OrderEligibilityService {
   public List<UUID> entregadoresElegiveisPara(Pedido pedido) {
     Set<UUID> bloqueados =
         Set.copyOf(bloqueioRepository.findEntregadoresBloqueadosPor(pedido.getEstabelecimentoId()));
+    // RF-26.28 — na republicação após desistência, quem desistiu não é avisado de novo.
+    Set<UUID> desistiram =
+        desistenciaRepository.findByPedidoId(pedido.getId()).stream()
+            .map(DesistenciaPedido::getEntregadorId)
+            .collect(Collectors.toSet());
 
     return courierPresenceService.findEligibleCouriers().stream()
         .filter(presenca -> !bloqueados.contains(presenca.courierId()))
+        .filter(presenca -> !desistiram.contains(presenca.courierId()))
         .filter(presenca -> presenca.lat() != null && presenca.longitude() != null)
         .filter(
             presenca ->

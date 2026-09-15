@@ -19,6 +19,7 @@ import com.uaiou.shared.id.UuidV7;
 import com.uaiou.shared.pagination.LinkRef;
 import com.uaiou.shared.pagination.Paginator;
 import com.uaiou.shared.pagination.PagingRequest;
+import com.uaiou.uploads.service.UploadService;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.entity.Entregador;
 import com.uaiou.users.entity.Estabelecimento;
@@ -43,7 +44,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
 
   private static final List<OrderStatus> STATUS_DO_ENTREGADOR =
-      List.of(OrderStatus.ACCEPTED, OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
+      List.of(
+          OrderStatus.ACCEPTED,
+          OrderStatus.PICKED_UP,
+          OrderStatus.FINALIZED,
+          OrderStatus.CONTESTABLE_FINALIZED);
 
   private final PedidoRepository pedidoRepository;
   private final EstabelecimentoRepository estabelecimentoRepository;
@@ -54,6 +59,8 @@ public class OrderService {
   private final CreditsProperties creditsProperties;
   private final OrderEligibilityService eligibilityService;
   private final ApplicationEventPublisher events;
+  private final PickupService pickupService;
+  private final UploadService uploadService;
 
   public OrderService(
       PedidoRepository pedidoRepository,
@@ -64,7 +71,11 @@ public class OrderService {
       CreditWalletService creditWalletService,
       CreditsProperties creditsProperties,
       OrderEligibilityService eligibilityService,
-      ApplicationEventPublisher events) {
+      ApplicationEventPublisher events,
+      PickupService pickupService,
+      UploadService uploadService) {
+    this.pickupService = pickupService;
+    this.uploadService = uploadService;
     this.pedidoRepository = pedidoRepository;
     this.estabelecimentoRepository = estabelecimentoRepository;
     this.entregadorRepository = entregadorRepository;
@@ -146,7 +157,7 @@ public class OrderService {
     // Só depois do commit (RF-11.10) — ver OrderPublishedFanout.
     events.publishEvent(new OrderPublishedEvent(pedido.getId()));
 
-    return toResponse(pedido, estabelecimento, null);
+    return toResponse(pedido, estabelecimento, null, estabelecimentoId, false);
   }
 
   /**
@@ -250,7 +261,12 @@ public class OrderService {
 
     Estabelecimento estabelecimento =
         estabelecimentoRepository.findById(pedido.getEstabelecimentoId()).orElse(null);
-    return toResponse(pedido, estabelecimento, distanciaAte(isCourier ? usuarioId : null, pedido));
+    return toResponse(
+        pedido,
+        estabelecimento,
+        distanciaAte(isCourier ? usuarioId : null, pedido),
+        usuarioId,
+        isCourier);
   }
 
   private String proximoNumero(UUID estabelecimentoId) {
@@ -276,24 +292,57 @@ public class OrderService {
   }
 
   private OrderResponse toResponse(
-      Pedido pedido, Estabelecimento estabelecimento, BigDecimal distanceKm) {
+      Pedido pedido,
+      Estabelecimento estabelecimento,
+      BigDecimal distanceKm,
+      UUID viewerId,
+      boolean viewerIsCourier) {
     OrderResponse.CourierRef courier = null;
     if (pedido.getEntregadorId() != null) {
+      Entregador entregador = entregadorRepository.findById(pedido.getEntregadorId()).orElse(null);
       courier =
           new OrderResponse.CourierRef(
               pedido.getEntregadorId(),
               usuarioRepository
                   .findById(pedido.getEntregadorId())
                   .map(Usuario::getNomeExibicao)
-                  .orElse(null));
+                  .orElse(null),
+              entregador == null ? null : entregador.getVeiculoPlaca(),
+              entregador == null ? null : uploadService.urlDeImagem(entregador.getFotoObjectKey()));
     }
 
+    String base = "/api/v1/orders/" + pedido.getId();
     Map<String, LinkRef> links = new LinkedHashMap<>();
-    links.put("self", LinkRef.get("/api/v1/orders/" + pedido.getId()));
+    links.put("self", LinkRef.get(base));
     if (pedido.estaNaVitrine()) {
-      links.put(
-          "counteroffers", LinkRef.get("/api/v1/orders/" + pedido.getId() + "/counteroffers"));
+      links.put("counteroffers", LinkRef.get(base + "/counteroffers"));
     }
+    // RF-26.13 — cada ação só aparece a quem pode executá-la agora; o cliente não reimplementa regra.
+    if (viewerIsCourier) {
+      if (pedido.aguardandoColeta() && pedido.estaAtribuidoA(viewerId)) {
+        links.put("withdrawal", new LinkRef(base + "/withdrawal", "POST"));
+        if (pedido.getChegouEm() == null) {
+          links.put("pickupArrival", new LinkRef(base + "/pickup/arrival", "POST"));
+        } else {
+          links.put("pickupReminders", new LinkRef(base + "/pickup/reminders", "POST"));
+        }
+      }
+    } else if (pedido.pertenceAoEstabelecimento(viewerId)) {
+      if (pedido.podeSerCancelado()) {
+        links.put("cancellation", new LinkRef(base + "/cancellation", "POST"));
+      }
+      if (pickupService.podeConfirmarColeta(pedido, estabelecimento)) {
+        links.put("pickupConfirmation", new LinkRef(base + "/pickup/confirmation", "POST"));
+      }
+    }
+
+    OrderResponse.CancellationRef cancelamento =
+        pedido.getCanceladoEm() == null
+            ? null
+            : new OrderResponse.CancellationRef(
+                pedido.getCancelamentoMotivo(),
+                pedido.getCancelamentoNota(),
+                pedido.getCanceladoEm());
 
     return new OrderResponse(
         pedido.getId(),
@@ -314,19 +363,19 @@ public class OrderService {
         new OrderResponse.ReceiverResponse(
             pedido.getRecebedorNome(), pedido.getRecebedorTelefone()),
         courier,
+        merchantRef(estabelecimento),
+        pedido.getAceitoEm(),
+        pedido.getChegouEm(),
+        pedido.getColetadoEm(),
+        cancelamento,
+        viewerIsCourier ? null : pickupService.taxaSeCancelarAgora(pedido),
+        pickupService.temCoordenada(estabelecimento),
         links);
   }
 
   private OrderSummary toSummary(
       Pedido pedido, Estabelecimento estabelecimento, BigDecimal distanceKm) {
-    OrderSummary.MerchantRef merchant = null;
-    if (estabelecimento != null) {
-      merchant =
-          new OrderSummary.MerchantRef(
-              estabelecimento.getUsuarioId(),
-              estabelecimento.getNomeFantasia(),
-              estabelecimento.getLogoObjectKey());
-    }
+    OrderSummary.MerchantRef merchant = merchantRef(estabelecimento);
 
     Map<String, LinkRef> links = new LinkedHashMap<>();
     links.put("self", LinkRef.get("/api/v1/orders/" + pedido.getId()));
@@ -349,7 +398,20 @@ public class OrderService {
         DestinationResponse.apenasBairro(pedido.getDestBairro()),
         pedido.getCriadoEm(),
         pedido.getAceitoEm(),
+        pedido.getChegouEm(),
+        pedido.getColetadoEm(),
         links);
+  }
+
+  /** {@code logoUrl} é URL de leitura de verdade — antes ia a chave interna do armazenamento. */
+  private OrderSummary.MerchantRef merchantRef(Estabelecimento estabelecimento) {
+    if (estabelecimento == null) {
+      return null;
+    }
+    return new OrderSummary.MerchantRef(
+        estabelecimento.getUsuarioId(),
+        estabelecimento.getNomeFantasia(),
+        uploadService.urlDeImagem(estabelecimento.getLogoObjectKey()));
   }
 
   private Usuario requireUsuario(UUID usuarioId) {

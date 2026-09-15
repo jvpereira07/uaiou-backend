@@ -29,4 +29,6 @@ public record MeProfile(
     // Comum aos dois papéis
     @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal score,
     // Entregador — livre
-    List<PaymentMethod> paymentMethods) {}
+    List<PaymentMethod> paymentMethods,
+    // Comum — foto do entregador ou logo do estabelecimento, URL de leitura com validade curta.
+    String photoUrl) {}

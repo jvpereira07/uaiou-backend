@@ -158,7 +158,18 @@ public class ProfileService {
       requireEntregador(usuario).atualizarFormasPagamento(profile.paymentMethods());
     }
 
+    if (profile.photoUploadId() != null) {
+      requireEntregador(usuario)
+          .atualizarFoto(
+              chaveDaImagem(profile.photoUploadId(), usuario.getId(), Purpose.COURIER_PHOTO));
+    }
+
     return pending;
+  }
+
+  /** Foto e logo são livres: basta o upload pronto, do próprio usuário e do propósito certo. */
+  private String chaveDaImagem(UUID uploadId, UUID usuarioId, Purpose proposito) {
+    return uploadService.validateForConsumption(uploadId, usuarioId, proposito).getObjectKey();
   }
 
   private List<String> applyMerchantProfile(Usuario usuario, PatchMeProfile profile) {
@@ -190,6 +201,10 @@ public class ProfileService {
 
     if (profile.logoObjectKey() != null) {
       estabelecimento.atualizarLogo(profile.logoObjectKey());
+    }
+    if (profile.photoUploadId() != null) {
+      estabelecimento.atualizarLogo(
+          chaveDaImagem(profile.photoUploadId(), usuario.getId(), Purpose.MERCHANT_LOGO));
     }
 
     // `estabelecimento.cep` é varchar(8): aceita "00000-000" do cliente, mas grava só os dígitos.
@@ -331,7 +346,8 @@ public class ProfileService {
         null,
         null,
         entregador.getScore(),
-        entregador.getFormasPagamento());
+        entregador.getFormasPagamento(),
+        uploadService.urlDeImagem(entregador.getFotoObjectKey()));
   }
 
   /**
@@ -358,7 +374,8 @@ public class ProfileService {
         estabelecimento.getLogoObjectKey(),
         buildAddress(estabelecimento),
         estabelecimento.getScore(),
-        null);
+        null,
+        uploadService.urlDeImagem(estabelecimento.getLogoObjectKey()));
   }
 
   private Address buildAddress(Estabelecimento estabelecimento) {

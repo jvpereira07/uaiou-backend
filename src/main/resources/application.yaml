@@ -109,6 +109,22 @@ app:
     penalty-points: ${DELIVERY_PENALTY_POINTS:10}
     # RF-17.6: janela de contestação até a consolidação automática.
     contestable-window: ${DELIVERY_CONTESTABLE_WINDOW:P1D}
+  pickup:
+    # T-26 — valores provisórios (D4, D8); calibrar com dado de produção.
+    # RF-26.2: raio da loja (maior que o geofence de entrega: galeria, shopping, rua sem vaga).
+    radius-meters: ${PICKUP_RADIUS_METERS:150}
+    # RF-26.2: leituras consecutivas no raio antes de registrar a chegada.
+    required-readings: ${PICKUP_REQUIRED_READINGS:2}
+    # RF-26.10: espera desde a chegada até o entregador poder pedir novo aviso, e intervalo entre avisos.
+    reminder-after: ${PICKUP_REMINDER_AFTER:PT5M}
+    reminder-min-interval: ${PICKUP_REMINDER_MIN_INTERVAL:PT2M}
+    # RF-26.17/RF-26.18: fração do frete final devida ao entregador quando a loja cancela após a chegada.
+    arrived-cancellation-fee-rate: ${PICKUP_ARRIVED_CANCELLATION_FEE_RATE:0.50}
+    # RF-26.29: desistências que contam em 24 h até o bloqueio de aceite, e duração do bloqueio.
+    withdrawal-max-per24h: ${WITHDRAWAL_MAX_PER_24H:3}
+    withdrawal-cooldown: ${WITHDRAWAL_COOLDOWN:PT2H}
+    # RF-26.30: espera na loja a partir da qual desistir por atraso não penaliza.
+    withdrawal-pickup-delay-tolerance: ${WITHDRAWAL_PICKUP_DELAY_TOLERANCE:PT15M}
   orders:
     # RF-11.11: raio único na v1 (ajuste por região é fase 2) — calibrar contra densidade real.
     eligibility-radius-km: ${ORDERS_ELIGIBILITY_RADIUS_KM:10}

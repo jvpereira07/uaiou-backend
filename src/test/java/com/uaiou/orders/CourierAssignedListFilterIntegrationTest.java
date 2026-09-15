@@ -90,6 +90,7 @@ class CourierAssignedListFilterIntegrationTest extends AbstractAuthIntegrationTe
   private UUID finalizarPedido(RegisteredTestUser merchant, RegisteredTestUser courier) {
     UUID pedidoId = publicar(merchant);
     aceitar(courier, pedidoId);
+    marcarColetado(pedidoId);
 
     String codigo =
         restTemplate

@@ -19,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Fixtures compartilhadas por testes de integração de qualquer módulo que precise de um entregador/
@@ -42,6 +43,18 @@ public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTes
   private static final AtomicLong SEQUENCE = new AtomicLong();
 
   @Autowired protected UserModerationTestFixtures moderation;
+
+  @Autowired private JdbcTemplate supportJdbcTemplate;
+
+  /**
+   * T-26 — atalho para testes de entrega que não exercitam a coleta: a finalização exige {@code
+   * coletado} (RF-26.12), e a coleta tem o próprio teste ({@code PickupCancellationIntegrationTest}).
+   */
+  protected void marcarColetado(UUID pedidoId) {
+    supportJdbcTemplate.update(
+        "update pedido set status = 'coletado', coletado_em = now() where id = ? and status = 'aceito'",
+        pedidoId);
+  }
 
   protected record RegisteredTestUser(UUID id, String login, String password, Role role) {}
 

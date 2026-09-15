@@ -1,5 +1,6 @@
 package com.uaiou.presence.service;
 
+import com.uaiou.presence.CourierLocationUpdatedEvent;
 import com.uaiou.presence.CourierPresence;
 import com.uaiou.presence.config.PresenceProperties;
 import com.uaiou.presence.dto.AvailabilityResponse;
@@ -18,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,16 +31,29 @@ public class CourierPresenceService {
   private final EntregadorRepository entregadorRepository;
   private final PresenceCache presenceCache;
   private final PresenceProperties properties;
+  private final ApplicationEventPublisher events;
 
   public CourierPresenceService(
       UsuarioRepository usuarioRepository,
       EntregadorRepository entregadorRepository,
       PresenceCache presenceCache,
-      PresenceProperties properties) {
+      PresenceProperties properties,
+      ApplicationEventPublisher events) {
     this.usuarioRepository = usuarioRepository;
     this.entregadorRepository = entregadorRepository;
     this.presenceCache = presenceCache;
     this.properties = properties;
+    this.events = events;
+  }
+
+  /**
+   * RF-26.8 — "a posição deste entregador ainda vale?" sem exigir disponibilidade: quem está em
+   * entrega pode ter desligado o recebimento de pedidos novos e continuar reportando posição.
+   */
+  @Transactional(readOnly = true)
+  public boolean hasFreshPosition(Entregador entregador) {
+    return entregador.getLat() != null
+        && entregador.temPosicaoRecente(properties.freshness(), Instant.now());
   }
 
   /**
@@ -92,6 +107,9 @@ public class CourierPresenceService {
     if (entregador.isDisponivel()) {
       presenceCache.savePosition(toPresence(entregador));
     }
+    // RF-26.1 — síncrono e na mesma transação; o ouvinte só consulta pedidos aguardando chegada
+    // deste entregador (RNF-26.1).
+    events.publishEvent(new CourierLocationUpdatedEvent(courierId));
   }
 
   /**

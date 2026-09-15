@@ -28,6 +28,9 @@ public record OrderSummary(
      * número congelado na resposta ficaria errado antes de a tela terminar de renderizar.
      */
     Instant acceptedAt,
+    /** T-26 — marcos da retirada: a lista mostra "aguardando confirmação" sem abrir o detalhe. */
+    Instant arrivedAt,
+    Instant pickedUpAt,
     @JsonProperty("_links") Map<String, LinkRef> links) {
 
   public record MerchantRef(UUID id, String name, String logoUrl) {}

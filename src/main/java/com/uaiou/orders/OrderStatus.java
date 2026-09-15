@@ -16,6 +16,8 @@ public enum OrderStatus {
   PUBLISHED,
   IN_NEGOTIATION,
   ACCEPTED,
+  /** T-26 — estabelecimento confirmou a entrega do pacote ao entregador; pré-condição da finalização. */
+  PICKED_UP,
   FINALIZED,
   CONTESTABLE_FINALIZED,
   CANCELLED;

@@ -71,7 +71,8 @@ public class MyPayablesService {
                                       numeroDoPedido(pedidosPorId, lancamento.getPedidoId()),
                                       lancamento.getValor(),
                                       lancamento.getStatus(),
-                                      lancamento.getCriadoEm()))
+                                      lancamento.getCriadoEm(),
+                                      lancamento.getTipo()))
                           .toList();
                   return new PayablesResponse.ByCourier(
                       entregadorId,

@@ -1,6 +1,8 @@
 package com.uaiou.delivery.entity;
 
+import com.uaiou.delivery.LedgerEntryType;
 import com.uaiou.delivery.LedgerStatus;
+import java.math.BigDecimal;
 import com.uaiou.shared.money.Money;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,6 +42,12 @@ public class LancamentoFrete {
 
   private LedgerStatus status;
 
+  private LedgerEntryType tipo;
+
+  /** RF-26.18 — percentual aplicado na taxa de cancelamento; nulo no lançamento de frete. */
+  @Column(name = "taxa_percentual")
+  private BigDecimal taxaPercentual;
+
   @Column(name = "acertado_em")
   private Instant acertadoEm;
 
@@ -66,6 +74,34 @@ public class LancamentoFrete {
     this.estabelecimentoId = estabelecimentoId;
     this.valor = valor;
     this.status = LedgerStatus.RECEIVABLE;
+    this.tipo = LedgerEntryType.DELIVERY_FEE;
+  }
+
+  /**
+   * RF-26.17 — taxa de cancelamento após a chegada do entregador. Mesmo livro, mesma leitura dos
+   * dois lados (RF-18.2); o percentual fica gravado para que mudar a configuração não reescreva o
+   * passado (RF-26.18).
+   */
+  public static LancamentoFrete taxaDeCancelamento(
+      UUID id,
+      UUID pedidoId,
+      UUID entregadorId,
+      UUID estabelecimentoId,
+      Money valor,
+      BigDecimal taxaPercentual) {
+    LancamentoFrete lancamento =
+        new LancamentoFrete(id, pedidoId, entregadorId, estabelecimentoId, valor);
+    lancamento.tipo = LedgerEntryType.CANCELLATION_FEE;
+    lancamento.taxaPercentual = taxaPercentual;
+    return lancamento;
+  }
+
+  public LedgerEntryType getTipo() {
+    return tipo;
+  }
+
+  public BigDecimal getTaxaPercentual() {
+    return taxaPercentual;
   }
 
   public UUID getId() {

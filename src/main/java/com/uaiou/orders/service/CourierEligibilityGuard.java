@@ -2,6 +2,8 @@ package com.uaiou.orders.service;
 
 import com.uaiou.blocks.service.BloqueioService;
 import com.uaiou.orders.entity.Pedido;
+import com.uaiou.orders.repository.DesistenciaPedidoRepository;
+import com.uaiou.shared.error.ConflictException;
 import com.uaiou.presence.service.CourierPresenceService;
 import com.uaiou.shared.error.ForbiddenException;
 import com.uaiou.shared.error.NotFoundException;
@@ -27,16 +29,22 @@ public class CourierEligibilityGuard {
   private final UsuarioRepository usuarioRepository;
   private final BloqueioService bloqueioService;
   private final CourierPresenceService courierPresenceService;
+  private final DesistenciaPedidoRepository desistenciaRepository;
+  private final WithdrawalLimitPolicy withdrawalLimitPolicy;
 
   public CourierEligibilityGuard(
       EntregadorRepository entregadorRepository,
       UsuarioRepository usuarioRepository,
       BloqueioService bloqueioService,
-      CourierPresenceService courierPresenceService) {
+      CourierPresenceService courierPresenceService,
+      DesistenciaPedidoRepository desistenciaRepository,
+      WithdrawalLimitPolicy withdrawalLimitPolicy) {
     this.entregadorRepository = entregadorRepository;
     this.usuarioRepository = usuarioRepository;
     this.bloqueioService = bloqueioService;
     this.courierPresenceService = courierPresenceService;
+    this.desistenciaRepository = desistenciaRepository;
+    this.withdrawalLimitPolicy = withdrawalLimitPolicy;
   }
 
   public void ensureCanTransact(UUID entregadorId, Pedido pedido) {
@@ -64,5 +72,13 @@ public class CourierEligibilityGuard {
     }
     // RF-12.3: pode ter sido bloqueado entre a listagem e a ação.
     bloqueioService.requireNotBlocked(pedido.getEstabelecimentoId(), entregadorId);
+    // RF-26.27 — quem desistiu não reaceita nem propõe outro valor para o mesmo pedido.
+    if (desistenciaRepository.existsByPedidoIdAndEntregadorId(pedido.getId(), entregadorId)) {
+      throw new ConflictException(
+          "ORDER_WITHDRAWN_BY_COURIER",
+          "Você desistiu deste pedido e não pode aceitá-lo de novo.");
+    }
+    // RF-26.29
+    withdrawalLimitPolicy.exigirForaDoBloqueio(entregadorId);
   }
 }

@@ -18,6 +18,7 @@ public class PurposeConverter implements AttributeConverter<Purpose, String> {
       case MERCHANT_LOGO -> "logo_estabelecimento";
       case DELIVERY_PROOF -> "comprovante_entrega";
       case CNPJ_DOCUMENT -> "documento_cnpj";
+      case COURIER_PHOTO -> "foto_entregador";
     };
   }
 
@@ -33,6 +34,7 @@ public class PurposeConverter implements AttributeConverter<Purpose, String> {
       case "logo_estabelecimento" -> Purpose.MERCHANT_LOGO;
       case "comprovante_entrega" -> Purpose.DELIVERY_PROOF;
       case "documento_cnpj" -> Purpose.CNPJ_DOCUMENT;
+      case "foto_entregador" -> Purpose.COURIER_PHOTO;
       default ->
           throw new IllegalStateException("Valor de purpose de upload desconhecido: " + dbData);
     };

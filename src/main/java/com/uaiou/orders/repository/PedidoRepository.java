@@ -59,6 +59,10 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
           + " and not exists ("
           + "   select 1 from Bloqueio b"
           + "   where b.estabelecimentoId = p.estabelecimentoId and b.entregadorId = :entregadorId)"
+          // RF-26.27 — quem desistiu do pedido não o vê mais na vitrine.
+          + " and not exists ("
+          + "   select 1 from DesistenciaPedido d"
+          + "   where d.pedidoId = p.id and d.entregadorId = :entregadorId)"
           + " order by p.criadoEm desc")
   List<Pedido> findNaCaixaDelimitadora(
       @Param("status") List<OrderStatus> status,
@@ -67,6 +71,16 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
       @Param("longMin") BigDecimal longMin,
       @Param("longMax") BigDecimal longMax,
       @Param("entregadorId") UUID entregadorId);
+
+  /**
+   * RF-26.1 — só ids: quem decide é a leitura travada logo depois. Carregar a entidade aqui a
+   * deixaria no contexto de persistência com o estado anterior ao lock.
+   */
+  @Query(
+      "select p.id from Pedido p where p.entregadorId = :entregadorId"
+          + " and p.status = :status and p.chegouEm is null")
+  List<UUID> idsAguardandoChegada(
+      @Param("entregadorId") UUID entregadorId, @Param("status") OrderStatus status);
 
   /** RF-17.6 — janela de contestação vencida, para o job de consolidação. */
   List<Pedido> findByStatusAndFinalizadoEmBefore(OrderStatus status, java.time.Instant limite);

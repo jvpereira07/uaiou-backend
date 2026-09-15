@@ -1,5 +1,6 @@
 package com.uaiou.delivery.dto;
 
+import com.uaiou.delivery.LedgerEntryType;
 import com.uaiou.delivery.LedgerStatus;
 import com.uaiou.shared.money.Money;
 import java.time.Instant;
@@ -17,5 +18,7 @@ public record PayablesResponse(Money total, List<ByCourier> byCourier) {
       String orderNumber,
       Money amount,
       LedgerStatus status,
-      Instant createdAt) {}
+      Instant createdAt,
+      /** T-26 — frete ou taxa de cancelamento (RF-A15.13). */
+      LedgerEntryType type) {}
 }

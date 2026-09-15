@@ -33,7 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrdersController {
 
   private static final String STATUS_PUBLISHED = "published";
-  private static final List<String> STATUS_DO_ENTREGADOR = List.of("accepted", "finalized");
+  private static final List<String> STATUS_DO_ENTREGADOR =
+      List.of("accepted", "picked_up", "finalized");
 
   private final OrderService orderService;
   private final AssignmentService assignmentService;
@@ -126,11 +127,15 @@ public class OrdersController {
    *
    * <p>{@code finalized} abrange também {@code contestable_finalized}: para quem entregou, os dois
    * são "já entreguei" — a contestação é assunto do estabelecimento. Já {@code accepted} é
-   * estritamente a entrega em curso, e é dessa exatidão que a tela principal depende.
+   * estritamente a entrega em curso, e é dessa exatidão que a tela principal depende — por isso
+   * abrange a fase de retirada e a de entrega (T-26): as duas são "entrega em andamento" para quem
+   * está na rua. {@code picked_up} recorta só a segunda.
    */
   private static List<OrderStatus> statusesDoRecorte(String recorte) {
-    return "accepted".equals(recorte)
-        ? List.of(OrderStatus.ACCEPTED)
-        : List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
+    return switch (recorte) {
+      case "accepted" -> List.of(OrderStatus.ACCEPTED, OrderStatus.PICKED_UP);
+      case "picked_up" -> List.of(OrderStatus.PICKED_UP);
+      default -> List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
+    };
   }
 }

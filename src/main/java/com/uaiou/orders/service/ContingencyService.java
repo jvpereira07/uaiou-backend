@@ -68,7 +68,13 @@ public class ContingencyService {
   public CodeRecoveryResponse acionar(
       UUID entregadorId, UUID pedidoId, CodeRecoveryRequest request) {
     Pedido pedido = requireAtribuido(entregadorId, pedidoId);
-    if (pedido.getStatus() != OrderStatus.ACCEPTED) {
+    // RF-26.12 — a contingência do código só existe depois da coleta.
+    if (pedido.getStatus() == OrderStatus.ACCEPTED) {
+      throw new ConflictException(
+          "ORDER_NOT_PICKED_UP",
+          "O estabelecimento ainda não confirmou a coleta deste pedido.");
+    }
+    if (pedido.getStatus() != OrderStatus.PICKED_UP) {
       throw new ConflictException(
           "ORDER_ALREADY_FINALIZED", "Este pedido já foi finalizado ou não admite contingência.");
     }

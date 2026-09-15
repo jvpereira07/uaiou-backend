@@ -63,7 +63,8 @@ public class MyEarningsService {
                         lancamento.getValor(),
                         lancamento.getStatus(),
                         lancamento.getCriadoEm(),
-                        lancamento.getAcertadoEm()))
+                        lancamento.getAcertadoEm(),
+                        lancamento.getTipo()))
             .toList();
 
     Map<String, LinkRef> links = new LinkedHashMap<>();

@@ -17,6 +17,16 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum NotificationType {
   ORDER_PUBLISHED("order.published", NotificationPriority.NORMAL, false),
   ORDER_ASSIGNED("order.assigned", NotificationPriority.NORMAL, false),
+  /**
+   * RF-26.6 — entregador na porta: a loja precisa entregar o pacote e confirmar agora. Não
+   * silenciável pelo mesmo motivo da contingência — desligar trava o entregador na loja.
+   */
+  ORDER_COURIER_ARRIVED("order.courier_arrived", NotificationPriority.URGENT, true),
+  ORDER_PICKED_UP("order.picked_up", NotificationPriority.NORMAL, false),
+  /** RF-26.19 — entregador a caminho precisa parar em segundos. */
+  ORDER_CANCELLED("order.cancelled", NotificationPriority.URGENT, true),
+  /** RF-26.28 — a loja precisa saber que o pedido voltou a ser oferecido. */
+  ORDER_COURIER_WITHDREW("order.courier_withdrew", NotificationPriority.URGENT, true),
   COUNTEROFFER_RECEIVED("counteroffer.received", NotificationPriority.NORMAL, false),
   COUNTEROFFER_DECIDED("counteroffer.decided", NotificationPriority.NORMAL, false),
   /** RN-09: tem prazo correndo — urgente e não silenciável. */

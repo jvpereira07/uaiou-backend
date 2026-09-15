@@ -223,6 +223,7 @@ class LedgerIntegrationTest extends AbstractAuthIntegrationTest {
         HttpMethod.POST,
         new HttpEntity<>(authHeaders(login(courier).accessToken())),
         AssignmentResponse.class);
+    marcarColetado(pedidoId);
     String codigo =
         restTemplate
             .exchange(

@@ -81,6 +81,27 @@ public class Pedido {
   @Column(name = "contestavel_liberado")
   private boolean contestavelLiberado;
 
+  @Column(name = "chegou_em")
+  private Instant chegouEm;
+
+  @Column(name = "leituras_no_raio_coleta")
+  private short leiturasNoRaioColeta;
+
+  @Column(name = "coletado_em")
+  private Instant coletadoEm;
+
+  @Column(name = "lembrete_coleta_em")
+  private Instant lembreteColetaEm;
+
+  @Column(name = "cancelado_em")
+  private Instant canceladoEm;
+
+  @Column(name = "cancelamento_motivo")
+  private String cancelamentoMotivo;
+
+  @Column(name = "cancelamento_nota")
+  private String cancelamentoNota;
+
   @CreationTimestamp
   @Column(name = "criado_em")
   private Instant criadoEm;
@@ -302,6 +323,117 @@ public class Pedido {
    */
   public void liberarContestavel() {
     this.contestavelLiberado = true;
+  }
+
+  public Instant getChegouEm() {
+    return chegouEm;
+  }
+
+  public Instant getColetadoEm() {
+    return coletadoEm;
+  }
+
+  public Instant getLembreteColetaEm() {
+    return lembreteColetaEm;
+  }
+
+  public Instant getCanceladoEm() {
+    return canceladoEm;
+  }
+
+  public String getCancelamentoMotivo() {
+    return cancelamentoMotivo;
+  }
+
+  public String getCancelamentoNota() {
+    return cancelamentoNota;
+  }
+
+  /** T-26 — aceito e ainda sem pacote: a janela em que chegar, coletar, cancelar e desistir valem. */
+  public boolean aguardandoColeta() {
+    return status == OrderStatus.ACCEPTED;
+  }
+
+  /** RF-26.14/D3 — o estabelecimento cancela até a coleta. */
+  public boolean podeSerCancelado() {
+    return status == OrderStatus.PUBLISHED
+        || status == OrderStatus.IN_NEGOTIATION
+        || status == OrderStatus.ACCEPTED;
+  }
+
+  /**
+   * RF-26.1/RF-26.2/RF-26.4 — uma leitura de posição do entregador atribuído. Fora do raio zera a
+   * sequência (histerese contra salto de GPS); a N-ésima leitura consecutiva dentro grava a chegada
+   * uma única vez.
+   *
+   * @return {@code true} só na leitura que registrou a chegada.
+   */
+  public boolean registrarLeituraNoRaioColeta(boolean dentroDoRaio, int leiturasNecessarias) {
+    if (!aguardandoColeta() || chegouEm != null) {
+      return false;
+    }
+    if (!dentroDoRaio) {
+      this.leiturasNoRaioColeta = 0;
+      return false;
+    }
+    this.leiturasNoRaioColeta++;
+    if (this.leiturasNoRaioColeta < leiturasNecessarias) {
+      return false;
+    }
+    this.chegouEm = agora();
+    return true;
+  }
+
+  /**
+   * RF-26.3/RF-26.4 — chegada declarada pelo botão "Cheguei", já validada pelo chamador.
+   *
+   * @return {@code true} se esta chamada registrou a chegada; {@code false} se ela já existia.
+   */
+  public boolean registrarChegada() {
+    if (chegouEm != null) {
+      return false;
+    }
+    this.chegouEm = agora();
+    return true;
+  }
+
+  /** RF-26.7 — o estabelecimento entregou o pacote na mão do entregador. */
+  public void confirmarColeta() {
+    this.status = OrderStatus.PICKED_UP;
+    this.coletadoEm = agora();
+  }
+
+  /** RF-26.10 — marca do último reaviso pedido pelo entregador. */
+  public void registrarLembreteColeta() {
+    this.lembreteColetaEm = agora();
+  }
+
+  /** RF-26.14 — estado terminal; os marcos do aceite ficam, para a auditoria e a taxa. */
+  public void cancelar(String motivo, String nota) {
+    this.status = OrderStatus.CANCELLED;
+    this.canceladoEm = agora();
+    this.cancelamentoMotivo = motivo;
+    this.cancelamentoNota = nota;
+  }
+
+  /**
+   * RF-26.23 — desistir não é cancelar: o pedido volta a ser oferecido como se ninguém o tivesse
+   * aceitado. O frete final some junto com a atribuição (ck_pedido_atribuicao_coerente), e o valor
+   * de contraoferta aceita morre com ele — a vitrine volta a mostrar o frete proposto.
+   */
+  public void desfazerAceite() {
+    this.entregadorId = null;
+    this.freteFinal = null;
+    this.aceitoEm = null;
+    this.chegouEm = null;
+    this.leiturasNoRaioColeta = 0;
+    this.lembreteColetaEm = null;
+    this.contestavelLiberado = false;
+    this.status = OrderStatus.PUBLISHED;
+  }
+
+  private static Instant agora() {
+    return Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
   }
 
   /** RF-16.4 — o estabelecimento corrige um pedido que nasceu sem telefone do recebedor. */

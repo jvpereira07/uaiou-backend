@@ -32,7 +32,49 @@ public record PatchMeProfile(
     BigDecimal lat,
     BigDecimal lng,
     // Entregador — livre. Substitui o conjunto inteiro; [] limpa, ausente não mexe.
-    List<PaymentMethod> paymentMethods) {
+    List<PaymentMethod> paymentMethods,
+    // Comum — livre. Upload confirmado: COURIER_PHOTO para entregador, MERCHANT_LOGO para
+    // estabelecimento. O vínculo é pelo upload, não pela chave, para que ninguém aponte o perfil
+    // para um objeto que não enviou.
+    UUID photoUploadId) {
+
+  /** Formato anterior à foto de perfil — mantido para quem não mexe nela. */
+  public PatchMeProfile(
+      String cpf,
+      UUID identityUploadId,
+      String vehicleType,
+      String vehiclePlate,
+      UUID vehicleUploadId,
+      String cnpj,
+      UUID cnpjUploadId,
+      String logoObjectKey,
+      String bairro,
+      String rua,
+      String numero,
+      String cidade,
+      String cep,
+      BigDecimal lat,
+      BigDecimal lng,
+      List<PaymentMethod> paymentMethods) {
+    this(
+        cpf,
+        identityUploadId,
+        vehicleType,
+        vehiclePlate,
+        vehicleUploadId,
+        cnpj,
+        cnpjUploadId,
+        logoObjectKey,
+        bairro,
+        rua,
+        numero,
+        cidade,
+        cep,
+        lat,
+        lng,
+        paymentMethods,
+        null);
+  }
 
   /** Formato anterior à forma de pagamento — mantido para quem não mexe nela. */
   public PatchMeProfile(
@@ -67,6 +109,7 @@ public record PatchMeProfile(
         cep,
         lat,
         lng,
+        null,
         null);
   }
 }

@@ -1,6 +1,7 @@
 package com.uaiou.delivery.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.uaiou.delivery.LedgerEntryType;
 import com.uaiou.delivery.LedgerStatus;
 import com.uaiou.shared.money.Money;
 import com.uaiou.shared.pagination.LinkRef;
@@ -26,5 +27,7 @@ public record EarningsResponse(
       Money amount,
       LedgerStatus status,
       Instant createdAt,
-      Instant settledAt) {}
+      Instant settledAt,
+      /** T-26 — frete ou taxa de cancelamento (RF-A15.13). */
+      LedgerEntryType type) {}
 }

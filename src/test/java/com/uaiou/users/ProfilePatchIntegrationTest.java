@@ -43,6 +43,45 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(response.getBody().pendingFields()).isEmpty();
   }
 
+  /** Foto de perfil do entregador: vínculo pelo upload, leitura por URL. */
+  @Test
+  void aCourierPhotoUploadBecomesTheProfilePhoto() {
+    RegisteredTestUser user = registerAndActivateCourier();
+    String accessToken = login(user).accessToken();
+    UUID uploadId = uploads.createReadyUpload(user.id(), "foto_entregador");
+
+    PatchMeRequest request =
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, uploadId));
+    ResponseEntity<MeResponse> response = patchMe(accessToken, request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().pendingFields()).isEmpty();
+    assertThat(getMe(accessToken).getBody().profile().photoUrl()).isNotBlank();
+  }
+
+  /** Upload de outro propósito não vira foto. */
+  @Test
+  void aDocumentUploadCannotBecomeTheProfilePhoto() {
+    RegisteredTestUser user = registerAndActivateCourier();
+    String accessToken = login(user).accessToken();
+    UUID uploadId = uploads.createReadyUpload(user.id(), "documento_identidade");
+
+    PatchMeRequest request =
+        new PatchMeRequest(
+            null,
+            null,
+            new PatchMeProfile(
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, uploadId));
+
+    assertThat(patchMe(accessToken, request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
+
   @Test
   void cnpjEditDoesNotChangeTheValueButCreatesAPendingDocument() {
     RegisteredTestUser user = registerAndActivateMerchant();

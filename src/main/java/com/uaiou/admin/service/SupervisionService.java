@@ -229,7 +229,10 @@ public class SupervisionService {
         null,
         null,
         entregador.getScore(),
-        entregador.getFormasPagamento());
+        entregador.getFormasPagamento(),
+        // A supervisão do admin não exibe a foto de perfil; gerar URL assinada aqui seria custo de
+        // um campo que nenhuma tela lê.
+        null);
   }
 
   private MeProfile buildMerchantProfile(Estabelecimento estabelecimento) {
@@ -245,6 +248,7 @@ public class SupervisionService {
         estabelecimento.getLogoObjectKey(),
         buildAddress(estabelecimento),
         estabelecimento.getScore(),
+        null,
         null);
   }
 

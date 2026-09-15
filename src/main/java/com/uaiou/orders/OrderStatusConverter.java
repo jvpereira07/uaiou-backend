@@ -16,6 +16,7 @@ public class OrderStatusConverter implements AttributeConverter<OrderStatus, Str
       case PUBLISHED -> "publicado";
       case IN_NEGOTIATION -> "em_negociacao";
       case ACCEPTED -> "aceito";
+      case PICKED_UP -> "coletado";
       case FINALIZED -> "finalizado";
       case CONTESTABLE_FINALIZED -> "finalizado_contestavel";
       case CANCELLED -> "cancelado";
@@ -32,6 +33,7 @@ public class OrderStatusConverter implements AttributeConverter<OrderStatus, Str
       case "publicado" -> OrderStatus.PUBLISHED;
       case "em_negociacao" -> OrderStatus.IN_NEGOTIATION;
       case "aceito" -> OrderStatus.ACCEPTED;
+      case "coletado" -> OrderStatus.PICKED_UP;
       case "finalizado" -> OrderStatus.FINALIZED;
       case "finalizado_contestavel" -> OrderStatus.CONTESTABLE_FINALIZED;
       case "cancelado" -> OrderStatus.CANCELLED;
