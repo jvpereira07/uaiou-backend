@@ -2,6 +2,7 @@ package com.uaiou.users.dto;
 
 import com.uaiou.users.PaymentMethod;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,8 +29,8 @@ public record PatchMeProfile(
     String cep,
     BigDecimal lat,
     BigDecimal lng,
-    // Entregador — livre
-    PaymentMethod paymentMethod) {
+    // Entregador — livre. Substitui o conjunto inteiro; [] limpa, ausente não mexe.
+    List<PaymentMethod> paymentMethods) {
 
   /** Formato anterior à forma de pagamento — mantido para quem não mexe nela. */
   public PatchMeProfile(

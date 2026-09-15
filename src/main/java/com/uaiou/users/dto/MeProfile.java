@@ -3,6 +3,7 @@ package com.uaiou.users.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.uaiou.users.PaymentMethod;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Um único formato para os dois papéis (RF-04.1) — os campos que não se aplicam ao {@code role} do
@@ -28,4 +29,4 @@ public record MeProfile(
     // Comum aos dois papéis
     @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal score,
     // Entregador — livre
-    PaymentMethod paymentMethod) {}
+    List<PaymentMethod> paymentMethods) {}

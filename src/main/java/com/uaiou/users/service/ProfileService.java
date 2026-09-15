@@ -150,8 +150,12 @@ public class ProfileService {
       }
     }
 
-    if (profile.paymentMethod() != null) {
-      requireEntregador(usuario).atualizarFormaPagamento(profile.paymentMethod());
+    if (profile.paymentMethods() != null) {
+      if (profile.paymentMethods().contains(null)) {
+        throw new BadRequestException(
+            "INVALID_PAYMENT_METHOD", "\"paymentMethods\" não pode conter valores nulos.");
+      }
+      requireEntregador(usuario).atualizarFormasPagamento(profile.paymentMethods());
     }
 
     return pending;
@@ -165,7 +169,7 @@ public class ProfileService {
             || profile.vehicleType() != null
             || profile.vehiclePlate() != null
             || profile.vehicleUploadId() != null
-            || profile.paymentMethod() != null);
+            || profile.paymentMethods() != null);
 
     if ((profile.lat() == null) != (profile.lng() == null)) {
       throw new BadRequestException(
@@ -320,7 +324,7 @@ public class ProfileService {
         null,
         null,
         entregador.getScore(),
-        entregador.getFormaPagamento());
+        entregador.getFormasPagamento());
   }
 
   /**

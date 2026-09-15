@@ -229,7 +229,7 @@ public class SupervisionService {
         null,
         null,
         entregador.getScore(),
-        entregador.getFormaPagamento());
+        entregador.getFormasPagamento());
   }
 
   private MeProfile buildMerchantProfile(Estabelecimento estabelecimento) {

@@ -1,7 +1,9 @@
 package com.uaiou.users.entity;
 
 import com.uaiou.users.PaymentMethod;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -12,6 +14,10 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -67,8 +73,13 @@ public class Entregador {
   @Column(name = "entregas_realizadas")
   private int entregasRealizadas;
 
+  // V23 — tabela própria: o entregador pode aceitar mais de uma forma.
+  @ElementCollection
+  @CollectionTable(
+      name = "entregador_forma_pagamento",
+      joinColumns = @JoinColumn(name = "usuario_id"))
   @Column(name = "forma_pagamento")
-  private PaymentMethod formaPagamento;
+  private Set<PaymentMethod> formasPagamento = new HashSet<>();
 
   protected Entregador() {
     // exigido pela JPA
@@ -194,13 +205,18 @@ public class Entregador {
     this.disponivelDesde = null;
   }
 
-  public PaymentMethod getFormaPagamento() {
-    return formaPagamento;
+  /** Ordem estável (a do enum) — o JSON não muda de ordem entre leituras. */
+  public List<PaymentMethod> getFormasPagamento() {
+    return formasPagamento.stream().sorted().toList();
   }
 
-  /** Campo livre do perfil — não passa por moderação. */
-  public void atualizarFormaPagamento(PaymentMethod formaPagamento) {
-    this.formaPagamento = formaPagamento;
+  /**
+   * Campo livre do perfil — não passa por moderação. Substitui o conjunto inteiro; vazio significa
+   * "ainda não informou".
+   */
+  public void atualizarFormasPagamento(Collection<PaymentMethod> formas) {
+    this.formasPagamento.clear();
+    this.formasPagamento.addAll(formas);
   }
 
   /** RF-15.9/RF-17.4 — contador de entregas concluídas, por código ou contestável. */
