@@ -192,6 +192,13 @@ public class ProfileService {
       estabelecimento.atualizarLogo(profile.logoObjectKey());
     }
 
+    // `estabelecimento.cep` é varchar(8): aceita "00000-000" do cliente, mas grava só os dígitos.
+    // Sem isso, um CEP com hífen estourava a coluna e virava 500 em vez de 400.
+    String cep = profile.cep() == null ? null : profile.cep().replaceAll("\\D", "");
+    if (cep != null && cep.length() != 8) {
+      throw new BadRequestException("INVALID_CEP", "\"cep\" precisa ter 8 dígitos.");
+    }
+
     boolean addressProvided =
         profile.bairro() != null
             || profile.rua() != null
@@ -206,7 +213,7 @@ public class ProfileService {
           profile.rua(),
           profile.numero(),
           profile.cidade(),
-          profile.cep(),
+          cep,
           profile.lat(),
           profile.lng());
     }

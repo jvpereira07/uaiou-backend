@@ -1,6 +1,7 @@
 package com.uaiou.users.dto;
 
 import com.uaiou.users.PaymentMethod;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -22,11 +23,12 @@ public record PatchMeProfile(
     UUID cnpjUploadId,
     // Estabelecimento — livre
     String logoObjectKey,
-    String bairro,
-    String rua,
-    String numero,
-    String cidade,
-    String cep,
+    // Limites espelham as colunas de V1__identidade.sql — acima disso o banco recusaria com 500.
+    @Size(max = 80) String bairro,
+    @Size(max = 120) String rua,
+    @Size(max = 10) String numero,
+    @Size(max = 80) String cidade,
+    @Size(max = 9) String cep,
     BigDecimal lat,
     BigDecimal lng,
     // Entregador — livre. Substitui o conjunto inteiro; [] limpa, ausente não mexe.
