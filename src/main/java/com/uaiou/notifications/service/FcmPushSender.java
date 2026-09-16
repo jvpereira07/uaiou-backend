@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Conditional;
@@ -55,6 +56,9 @@ public class FcmPushSender implements PushSender {
   /** Limite do FCM por chamada multicast. */
   private static final int LOTE_MAXIMO = 500;
 
+  /** Identificador de navegador do Flutter Web ({@code identificador_dispositivo.dart}). */
+  private static final Pattern IDENTIFICADOR_LOCAL = Pattern.compile("[0-9a-f]{32}");
+
   static final String CANAL_URGENTE = "urgente";
   static final String CANAL_GERAL = "geral";
 
@@ -71,8 +75,17 @@ public class FcmPushSender implements PushSender {
     if (destinos.isEmpty()) {
       return List.of();
     }
-    List<String> tokens = destinos.stream().map(Dispositivo::getPushToken).toList();
     List<String> invalidos = new ArrayList<>();
+    List<String> tokens = new ArrayList<>();
+    for (Dispositivo destino : destinos) {
+      // Antes do FCM o app registrava um identificador local (32 hex) como "token". Enviar para ele
+      // só gera erro a cada notificação; devolver como inválido faz o NotificationService limpar.
+      if (IDENTIFICADOR_LOCAL.matcher(destino.getPushToken()).matches()) {
+        invalidos.add(destino.getPushToken());
+      } else {
+        tokens.add(destino.getPushToken());
+      }
+    }
     for (int inicio = 0; inicio < tokens.size(); inicio += LOTE_MAXIMO) {
       List<String> lote = tokens.subList(inicio, Math.min(inicio + LOTE_MAXIMO, tokens.size()));
       invalidos.addAll(enviarLote(notificacao, lote));
@@ -102,9 +115,10 @@ public class FcmPushSender implements PushSender {
         invalidos.add(lote.get(i));
       } else {
         log.warn(
-            "push {} não entregue a um dispositivo: {}",
+            "push {} não entregue a um dispositivo: {} — {}",
             notificacao.getId(),
-            erro == null ? "sem detalhe" : erro.getMessagingErrorCode());
+            erro == null ? "sem detalhe" : erro.getMessagingErrorCode(),
+            erro == null ? "" : erro.getMessage());
       }
     }
     return invalidos;

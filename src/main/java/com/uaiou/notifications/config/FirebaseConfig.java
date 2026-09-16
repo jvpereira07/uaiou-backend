@@ -1,5 +1,6 @@
 package com.uaiou.notifications.config;
 
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -30,6 +31,11 @@ public class FirebaseConfig {
       FirebaseOptions options =
           FirebaseOptions.builder()
               .setCredentials(GoogleCredentials.fromStream(credencial))
+              // O transporte padrão (Apache HttpClient 5, na versão gerenciada pelo Spring Boot)
+              // já descomprime a resposta; o cliente do Google tenta descomprimir de novo e toda
+              // resposta de ERRO do FCM estoura "Not in GZIP format". O código do erro some,
+              // token morto nunca é removido e o log não diz o motivo — visto em produção.
+              .setHttpTransport(new NetHttpTransport())
               .build();
       FirebaseApp app =
           FirebaseApp.getApps().stream()
