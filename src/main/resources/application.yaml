@@ -73,6 +73,12 @@ app:
     secret: ${JWT_SECRET}
     access-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
     refresh-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+  push:
+    # T-08 — conta de serviço do Firebase. Informe UM dos dois: caminho do JSON (docker-compose) ou
+    # o conteúdo do JSON (Railway, onde montar arquivo é incômodo). Ambos VAZIOS é estado válido: o
+    # transporte cai no LoggingPushSender e o inbox continua funcionando.
+    credentials-path: ${PUSH_PROVIDER_CREDENTIALS_PATH:}
+    credentials-json: ${PUSH_PROVIDER_CREDENTIALS_JSON:}
   google:
     client-id: ${GOOGLE_CLIENT_ID}
   password-reset:

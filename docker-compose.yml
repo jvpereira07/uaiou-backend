@@ -70,9 +70,14 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DELIVERY_CODE_CIPHER_KEY: ${DELIVERY_CODE_CIPHER_KEY}
-      PUSH_PROVIDER_CREDENTIALS_PATH: ${PUSH_PROVIDER_CREDENTIALS_PATH:-}
+      # O caminho do .env é do HOST; dentro do container o arquivo está no volume de ./secrets abaixo.
+      PUSH_PROVIDER_CREDENTIALS_PATH: ${PUSH_PROVIDER_CREDENTIALS_PATH:+/run/secrets/uaiou/push-credentials.json}
+      PUSH_PROVIDER_CREDENTIALS_JSON: ${PUSH_PROVIDER_CREDENTIALS_JSON:-}
       # T-25 — vazio é estado válido: sem chave o recurso de rotas desliga e o resto sobe igual.
       ROUTING_API_KEY: ${ROUTING_API_KEY:-}
+    volumes:
+      # Credencial do Firebase (fora do git). Somente leitura.
+      - ./secrets:/run/secrets/uaiou:ro
     ports:
       - "${SERVER_PORT:-8080}:8080"
     depends_on:

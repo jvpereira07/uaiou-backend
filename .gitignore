@@ -35,3 +35,8 @@ build/
 ### Ambiente local ###
 .env
 
+
+# Credencial do Firebase (conta de serviço)
+*firebase-adminsdk*.json
+firebase-service-account.json
+secrets/
