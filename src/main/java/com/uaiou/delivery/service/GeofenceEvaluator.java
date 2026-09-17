@@ -39,7 +39,9 @@ public class GeofenceEvaluator {
   public Resultado avaliar(Entregador entregador, Pedido pedido) {
     double raio = properties.geofenceRadiusMeters();
 
-    if (!courierPresenceService.hasFreshPresence(entregador.getUsuarioId())
+    // Frescor da posição, não disponibilidade: quem está no meio de uma entrega pode estar
+    // indisponível para pedidos novos e ainda assim precisa finalizar a que tem.
+    if (!courierPresenceService.hasFreshPosition(entregador)
         || entregador.getLat() == null
         || entregador.getLongitude() == null) {
       return new Resultado(false, raio, null, "stale_location");

@@ -60,7 +60,8 @@ public class OrderLifecycleFanout {
     String nome = nomeDe(evento.entregadorId(), "O entregador");
     Entregador entregador = entregadorRepository.findById(evento.entregadorId()).orElse(null);
     String placa = entregador == null ? null : entregador.getVeiculoPlaca();
-    String foto = entregador == null ? null : uploadService.urlDeImagem(entregador.getFotoObjectKey());
+    String foto =
+        entregador == null ? null : uploadService.urlDeImagem(entregador.getFotoObjectKey());
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("orderId", pedido.getId().toString());
@@ -123,7 +124,11 @@ public class OrderLifecycleFanout {
         corpo += " Você receberá R$ " + evento.fee().amount().toPlainString() + " de taxa.";
       }
       notificationService.publicar(
-          evento.entregadorId(), NotificationType.ORDER_CANCELLED, "Pedido cancelado", corpo, payload);
+          evento.entregadorId(),
+          NotificationType.ORDER_CANCELLED,
+          "Pedido cancelado",
+          corpo,
+          payload);
     }
 
     for (UUID proponente : evento.proponentesInvalidados()) {

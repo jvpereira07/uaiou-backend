@@ -1,6 +1,7 @@
 package com.uaiou.orders.service;
 
 import com.uaiou.orders.Distances;
+import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.dto.OrderRouteResponse;
 import com.uaiou.orders.entity.Pedido;
 import com.uaiou.orders.repository.PedidoRepository;
@@ -72,13 +73,24 @@ public class OrderRouteService {
 
   @Transactional(readOnly = true)
   public OrderRouteResponse get(UUID entregadorId, UUID pedidoId) {
+    return get(entregadorId, pedidoId, null, null);
+  }
+
+  /**
+   * @param lat latitude lida agora pelo aparelho; com {@code lng}, tem precedência sobre a posição
+   *     salva — é o que faz "recalcular" partir de onde o entregador realmente está.
+   */
+  @Transactional(readOnly = true)
+  public OrderRouteResponse get(UUID entregadorId, UUID pedidoId, BigDecimal lat, BigDecimal lng) {
     Pedido pedido = requirePedidoVisivel(entregadorId, pedidoId);
     Entregador entregador = entregadorRepository.findById(entregadorId).orElseThrow(this::notFound);
     Estabelecimento estabelecimento =
         estabelecimentoRepository.findById(pedido.getEstabelecimentoId()).orElse(null);
 
-    Point origem = pontoDoEntregador(entregador);
-    Point loja = pontoDaLoja(estabelecimento);
+    Point origem = coordenadaValida(lat, lng) ? new Point(lat, lng) : pontoDoEntregador(entregador);
+    // Depois da coleta a loja já ficou para trás: passar por ela de novo mandaria o entregador
+    // voltar ao estabelecimento antes de seguir ao destino.
+    Point loja = pedido.getStatus() == OrderStatus.PICKED_UP ? null : pontoDaLoja(estabelecimento);
     Point destino = new Point(pedido.getDestLat(), pedido.getDestLong());
 
     OrderRouteResponse.Route rota = resolver(pedido.getId(), origem, loja, destino);
@@ -180,6 +192,12 @@ public class OrderRouteService {
 
   private boolean temCoordenada(BigDecimal lat, BigDecimal lng) {
     return lat != null && lng != null;
+  }
+
+  private boolean coordenadaValida(BigDecimal lat, BigDecimal lng) {
+    return temCoordenada(lat, lng)
+        && lat.abs().compareTo(BigDecimal.valueOf(90)) <= 0
+        && lng.abs().compareTo(BigDecimal.valueOf(180)) <= 0;
   }
 
   /**

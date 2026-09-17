@@ -90,8 +90,7 @@ public class DeliveryCompletionService {
     // RF-26.12 — sem coleta confirmada pelo estabelecimento não há entrega a finalizar.
     if (pedido.getStatus() == OrderStatus.ACCEPTED) {
       throw new ConflictException(
-          "ORDER_NOT_PICKED_UP",
-          "O estabelecimento ainda não confirmou a coleta deste pedido.");
+          "ORDER_NOT_PICKED_UP", "O estabelecimento ainda não confirmou a coleta deste pedido.");
     }
     if (pedido.getStatus() != OrderStatus.PICKED_UP) {
       throw new ConflictException(

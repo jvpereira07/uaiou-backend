@@ -183,6 +183,28 @@ class OrderRouteIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(response.getBody().error().code()).isEqualTo("ORDER_NOT_VISIBLE");
   }
 
+  /** A leitura de GPS enviada na consulta vence a posição salva: recalcular parte de onde ele está. */
+  @Test
+  void theDevicePositionSentInTheRequestIsTheRouteOrigin() {
+    RegisteredTestUser merchant = merchantComCoordenada();
+    UUID pedidoId = publicarPedidoDe(merchant);
+    RegisteredTestUser courier = disponivelEm(ENTREGADOR_LAT, ENTREGADOR_LONG);
+
+    OrderRouteResponse salva = rotaDe(courier, pedidoId).getBody();
+    OrderRouteResponse informada =
+        restTemplate
+            .exchange(
+                baseUrl("/orders/" + pedidoId + "/route?lat=-19.940000&lng=-43.950000"),
+                HttpMethod.GET,
+                new HttpEntity<>(authHeaders(login(courier).accessToken())),
+                OrderRouteResponse.class)
+            .getBody();
+
+    assertThat(informada.route().available()).isTrue();
+    assertThat(informada.straightLineDistanceKm())
+        .isNotEqualByComparingTo(salva.straightLineDistanceKm());
+  }
+
   private ResponseEntity<OrderRouteResponse> rotaDe(RegisteredTestUser courier, UUID pedidoId) {
     return restTemplate.exchange(
         baseUrl("/orders/" + pedidoId + "/route"),

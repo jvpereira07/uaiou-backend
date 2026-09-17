@@ -8,7 +8,9 @@ public enum WithdrawalReason {
   VEHICLE_PROBLEM("vehicle_problem"),
   ACCIDENT("accident"),
   WRONG_ORDER("wrong_order"),
-  /** RF-26.30 — o único motivo que pode deixar de penalizar, se a espera na loja passou do tolerado. */
+  /**
+   * RF-26.30 — o único motivo que pode deixar de penalizar, se a espera na loja passou do tolerado.
+   */
   PICKUP_DELAY("pickup_delay"),
   PERSONAL("personal"),
   OTHER("other");

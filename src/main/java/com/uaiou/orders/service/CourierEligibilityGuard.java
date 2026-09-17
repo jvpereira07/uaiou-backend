@@ -3,8 +3,8 @@ package com.uaiou.orders.service;
 import com.uaiou.blocks.service.BloqueioService;
 import com.uaiou.orders.entity.Pedido;
 import com.uaiou.orders.repository.DesistenciaPedidoRepository;
-import com.uaiou.shared.error.ConflictException;
 import com.uaiou.presence.service.CourierPresenceService;
+import com.uaiou.shared.error.ConflictException;
 import com.uaiou.shared.error.ForbiddenException;
 import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.users.UserStatus;
@@ -75,8 +75,7 @@ public class CourierEligibilityGuard {
     // RF-26.27 — quem desistiu não reaceita nem propõe outro valor para o mesmo pedido.
     if (desistenciaRepository.existsByPedidoIdAndEntregadorId(pedido.getId(), entregadorId)) {
       throw new ConflictException(
-          "ORDER_WITHDRAWN_BY_COURIER",
-          "Você desistiu deste pedido e não pode aceitá-lo de novo.");
+          "ORDER_WITHDRAWN_BY_COURIER", "Você desistiu deste pedido e não pode aceitá-lo de novo.");
     }
     // RF-26.29
     withdrawalLimitPolicy.exigirForaDoBloqueio(entregadorId);

@@ -349,7 +349,9 @@ public class Pedido {
     return cancelamentoNota;
   }
 
-  /** T-26 — aceito e ainda sem pacote: a janela em que chegar, coletar, cancelar e desistir valem. */
+  /**
+   * T-26 — aceito e ainda sem pacote: a janela em que chegar, coletar, cancelar e desistir valem.
+   */
   public boolean aguardandoColeta() {
     return status == OrderStatus.ACCEPTED;
   }

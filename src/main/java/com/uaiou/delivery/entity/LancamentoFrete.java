@@ -2,12 +2,12 @@ package com.uaiou.delivery.entity;
 
 import com.uaiou.delivery.LedgerEntryType;
 import com.uaiou.delivery.LedgerStatus;
-import java.math.BigDecimal;
 import com.uaiou.shared.money.Money;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;

@@ -12,8 +12,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param requiredReadings leituras consecutivas no raio para registrar a chegada (RF-26.2).
  * @param reminderAfter espera, desde a chegada, até o entregador poder pedir novo aviso (RF-26.10).
  * @param reminderMinInterval intervalo mínimo entre dois avisos pedidos pelo entregador (RF-26.10).
- * @param arrivedCancellationFeeRate fração do frete final devida ao entregador quando a loja cancela
- *     depois da chegada (RF-26.17/RF-26.18).
+ * @param arrivedCancellationFeeRate fração do frete final devida ao entregador quando a loja
+ *     cancela depois da chegada (RF-26.17/RF-26.18).
  * @param withdrawalMaxPer24h desistências que contam, em 24 h, até o bloqueio de aceite (RF-26.29).
  * @param withdrawalCooldown duração do bloqueio de aceite (RF-26.29).
  * @param withdrawalPickupDelayTolerance espera na loja a partir da qual desistir por atraso não

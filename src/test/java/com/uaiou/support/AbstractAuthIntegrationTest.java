@@ -48,7 +48,8 @@ public abstract class AbstractAuthIntegrationTest extends AbstractIntegrationTes
 
   /**
    * T-26 — atalho para testes de entrega que não exercitam a coleta: a finalização exige {@code
-   * coletado} (RF-26.12), e a coleta tem o próprio teste ({@code PickupCancellationIntegrationTest}).
+   * coletado} (RF-26.12), e a coleta tem o próprio teste ({@code
+   * PickupCancellationIntegrationTest}).
    */
   protected void marcarColetado(UUID pedidoId) {
     supportJdbcTemplate.update(

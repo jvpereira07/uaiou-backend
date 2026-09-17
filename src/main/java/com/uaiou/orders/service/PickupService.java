@@ -149,9 +149,7 @@ public class PickupService {
 
     if (!podeConfirmarColeta(pedido, lojaDe(pedido))) {
       throw new BusinessRuleException(
-          "COURIER_NOT_AT_PICKUP",
-          "O entregador ainda não chegou ao estabelecimento.",
-          "RF-26.8");
+          "COURIER_NOT_AT_PICKUP", "O entregador ainda não chegou ao estabelecimento.", "RF-26.8");
     }
 
     pedido.confirmarColeta();
@@ -197,8 +195,8 @@ public class PickupService {
 
   /**
    * RF-26.8 — a regra única da confirmação, reusada pelos {@code _links} (RF-26.13): com coordenada
-   * da loja, exige chegada registrada e posição fresca do entregador dentro do raio; sem coordenada,
-   * não há o que checar (RF-26.5).
+   * da loja, exige chegada registrada e posição fresca do entregador dentro do raio; sem
+   * coordenada, não há o que checar (RF-26.5).
    */
   @Transactional(readOnly = true)
   public boolean podeConfirmarColeta(Pedido pedido, Estabelecimento loja) {

@@ -55,8 +55,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
             null,
             null,
             new PatchMeProfile(
-                null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, uploadId));
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, uploadId));
     ResponseEntity<MeResponse> response = patchMe(accessToken, request);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -76,8 +76,8 @@ class ProfilePatchIntegrationTest extends AbstractAuthIntegrationTest {
             null,
             null,
             new PatchMeProfile(
-                null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, uploadId));
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, uploadId));
 
     assertThat(patchMe(accessToken, request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
   }

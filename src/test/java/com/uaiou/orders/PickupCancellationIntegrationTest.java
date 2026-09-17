@@ -62,7 +62,11 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(notificacoesDoTipo(merchant.id(), "order.courier_arrived")).isEqualTo(1);
 
     ResponseEntity<OrderLifecycleResponse> coleta =
-        post(merchant, "/orders/" + pedidoId + "/pickup/confirmation", null, OrderLifecycleResponse.class);
+        post(
+            merchant,
+            "/orders/" + pedidoId + "/pickup/confirmation",
+            null,
+            OrderLifecycleResponse.class);
     assertThat(coleta.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(coleta.getBody().status()).isEqualTo(OrderStatus.PICKED_UP);
     assertThat(orders.statusPersistidoDe(pedidoId)).isEqualTo("coletado");
@@ -108,7 +112,8 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
     RegisteredTestUser merchant = merchantComCoordenada();
     UUID pedidoId = publicar(merchant, "9.00");
 
-    ResponseEntity<OrderLifecycleResponse> resposta = cancelar(merchant, pedidoId, "customer_gave_up", null);
+    ResponseEntity<OrderLifecycleResponse> resposta =
+        cancelar(merchant, pedidoId, "customer_gave_up", null);
 
     assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(resposta.getBody().status()).isEqualTo(OrderStatus.CANCELLED);
@@ -124,7 +129,8 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
     UUID pedidoId = publicar(merchant, "9.00");
     aceitar(courier, pedidoId);
 
-    ResponseEntity<OrderLifecycleResponse> resposta = cancelar(merchant, pedidoId, "out_of_stock", null);
+    ResponseEntity<OrderLifecycleResponse> resposta =
+        cancelar(merchant, pedidoId, "out_of_stock", null);
 
     assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(lancamentosDe(pedidoId)).isZero();
@@ -168,7 +174,8 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
     aceitar(courier, pedidoId);
     chegarManualmente(courier, pedidoId);
 
-    ResponseEntity<OrderLifecycleResponse> resposta = cancelar(merchant, pedidoId, "order_error", null);
+    ResponseEntity<OrderLifecycleResponse> resposta =
+        cancelar(merchant, pedidoId, "order_error", null);
 
     assertThat(resposta.getBody().cancellationFee()).isEqualTo(Money.of("3.63"));
   }
@@ -219,7 +226,8 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
     aceitar(courier, pedidoId);
     int creditosAntes = orders.saldoDe(merchant.id());
 
-    ResponseEntity<OrderLifecycleResponse> resposta = desistir(courier, pedidoId, "vehicle_problem");
+    ResponseEntity<OrderLifecycleResponse> resposta =
+        desistir(courier, pedidoId, "vehicle_problem");
 
     assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(resposta.getBody().status()).isEqualTo(OrderStatus.PUBLISHED);
@@ -346,8 +354,10 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
 
   private ResponseEntity<OrderLifecycleResponse> cancelar(
       RegisteredTestUser merchant, UUID pedidoId, String motivo, String nota) {
-    Map<String, Object> corpo = nota == null ? Map.of("reason", motivo) : Map.of("reason", motivo, "note", nota);
-    return post(merchant, "/orders/" + pedidoId + "/cancellation", corpo, OrderLifecycleResponse.class);
+    Map<String, Object> corpo =
+        nota == null ? Map.of("reason", motivo) : Map.of("reason", motivo, "note", nota);
+    return post(
+        merchant, "/orders/" + pedidoId + "/cancellation", corpo, OrderLifecycleResponse.class);
   }
 
   private ResponseEntity<OrderLifecycleResponse> desistir(
@@ -407,7 +417,8 @@ class PickupCancellationIntegrationTest extends AbstractAuthIntegrationTest {
         HttpMethod.PUT,
         authed(
             login(courier).accessToken(),
-            new UpdateLocationRequest(new BigDecimal(lat), new BigDecimal(lng), new BigDecimal("10.0"))),
+            new UpdateLocationRequest(
+                new BigDecimal(lat), new BigDecimal(lng), new BigDecimal("10.0"))),
         Void.class);
   }
 

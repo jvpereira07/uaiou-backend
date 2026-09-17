@@ -6,10 +6,12 @@ import com.uaiou.orders.dto.OrderRouteResponse;
 import com.uaiou.orders.service.OrderRouteService;
 import com.uaiou.shared.error.ForbiddenException;
 import com.uaiou.users.Role;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -32,12 +34,20 @@ public class OrderRouteController {
     this.currentUserHolder = currentUserHolder;
   }
 
+  /**
+   * {@code lat}/{@code lng} opcionais: a leitura de GPS que o app tem <em>agora</em>. Sem eles, a
+   * origem é a última posição reportada em {@code PUT /me/location} — que pode estar velha quando o
+   * entregador não está disponível e o app parou de enviar.
+   */
   @GetMapping
-  public OrderRouteResponse route(@PathVariable UUID orderId) {
+  public OrderRouteResponse route(
+      @PathVariable UUID orderId,
+      @RequestParam(required = false) BigDecimal lat,
+      @RequestParam(required = false) BigDecimal lng) {
     AuthenticatedUser user = currentUserHolder.require();
     if (user.role() != Role.COURIER) {
       throw new ForbiddenException("COURIER_ONLY", "A rota da entrega é do entregador.");
     }
-    return orderRouteService.get(user.userId(), orderId);
+    return orderRouteService.get(user.userId(), orderId, lat, lng);
   }
 }

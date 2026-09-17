@@ -15,8 +15,9 @@ public interface DesistenciaPedidoRepository extends JpaRepository<DesistenciaPe
   List<DesistenciaPedido> findByPedidoId(UUID pedidoId);
 
   /** RF-26.29 — janela móvel do limite, só com as que contam (RF-26.30). */
-  List<DesistenciaPedido> findByEntregadorIdAndContaPenalidadeTrueAndCriadoEmAfterOrderByCriadoEmDesc(
-      UUID entregadorId, Instant desde);
+  List<DesistenciaPedido>
+      findByEntregadorIdAndContaPenalidadeTrueAndCriadoEmAfterOrderByCriadoEmDesc(
+          UUID entregadorId, Instant desde);
 
   /** RF-26.31 — insumo do componente de conclusão do score. */
   List<DesistenciaPedido> findByEntregadorIdAndContaPenalidadeTrue(UUID entregadorId);

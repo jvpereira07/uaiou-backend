@@ -317,7 +317,8 @@ public class OrderService {
     if (pedido.estaNaVitrine()) {
       links.put("counteroffers", LinkRef.get(base + "/counteroffers"));
     }
-    // RF-26.13 — cada ação só aparece a quem pode executá-la agora; o cliente não reimplementa regra.
+    // RF-26.13 — cada ação só aparece a quem pode executá-la agora; o cliente não reimplementa
+    // regra.
     if (viewerIsCourier) {
       if (pedido.aguardandoColeta() && pedido.estaAtribuidoA(viewerId)) {
         links.put("withdrawal", new LinkRef(base + "/withdrawal", "POST"));

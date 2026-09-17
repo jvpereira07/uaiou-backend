@@ -46,9 +46,9 @@ public class WithdrawalService {
 
   /**
    * RF-26.23/RF-26.24 — o pedido volta a "publicado" sem custo ao estabelecimento: nenhum crédito
-   * consumido, nenhum lançamento. O código de entrega é descartado — o próximo aceite gera outro e o
-   * reenvia (RF-13.4) —, porque o anterior já foi entregue ao recebedor junto com a expectativa de
-   * que <em>este</em> entregador chegaria.
+   * consumido, nenhum lançamento. O código de entrega é descartado — o próximo aceite gera outro e
+   * o reenvia (RF-13.4) —, porque o anterior já foi entregue ao recebedor junto com a expectativa
+   * de que <em>este</em> entregador chegaria.
    */
   @Transactional
   public OrderLifecycleResponse desistir(
@@ -91,8 +91,8 @@ public class WithdrawalService {
   }
 
   /**
-   * RF-26.30 — atraso da loja não penaliza: desistir por {@code pickup_delay} depois de esperar além
-   * do tolerado é desistência justa.
+   * RF-26.30 — atraso da loja não penaliza: desistir por {@code pickup_delay} depois de esperar
+   * além do tolerado é desistência justa.
    */
   private boolean contaPenalidade(WithdrawalReason motivo, Instant chegouEm) {
     if (motivo != WithdrawalReason.PICKUP_DELAY || chegouEm == null) {

@@ -89,7 +89,8 @@ public class OrderCancellationService {
     List<Contraoferta> pendentes =
         contraofertaRepository.findByPedidoIdAndStatus(pedidoId, CounterofferStatus.PENDING);
     pendentes.forEach(Contraoferta::invalidar);
-    List<UUID> proponentes = pendentes.stream().map(Contraoferta::getEntregadorId).distinct().toList();
+    List<UUID> proponentes =
+        pendentes.stream().map(Contraoferta::getEntregadorId).distinct().toList();
 
     otpRepository.findByPedidoId(pedidoId).ifPresent(Otp::expirar);
 
