@@ -163,6 +163,22 @@ app:
     pickup-coordinate-scale: ${ROUTING_PICKUP_COORDINATE_SCALE:3}
     # RNF-25.2: atribuição exigida pela licença do plano gratuito — obrigação, não escolha de layout.
     attribution: ${ROUTING_ATTRIBUTION:Powered by Geoapify · © OpenStreetMap contributors}
+  map-tiles:
+    # Mapa vetorial da navegação, servido por este backend com cache no MinIO. Mesma conta
+    # Geoapify de `routing`; chave VAZIA desliga o recurso e o app usa o mapa raster de reserva.
+    api-key: ${MAP_TILES_API_KEY:${ROUTING_API_KEY:}}
+    base-url: ${MAP_TILES_BASE_URL:https://maps.geoapify.com}
+    light-style: ${MAP_TILES_LIGHT_STYLE:maptiler-3d}
+    dark-style: ${MAP_TILES_DARK_STYLE:dark-matter-yellow-roads}
+    timeout: ${MAP_TILES_TIMEOUT:PT5S}
+    # Idade a partir da qual um recurso guardado é buscado de novo no provedor.
+    cache-ttl: ${MAP_TILES_CACHE_TTL:P30D}
+    # Base absoluta da API vista pelo app. OBRIGATÓRIA atrás de proxy TLS (Railway): sem ela as URLs
+    # do estilo saem com o esquema/host internos. Vazia deriva da requisição (desenvolvimento).
+    public-base-url: ${MAP_TILES_PUBLIC_BASE_URL:}
+    # Assina o token diário das URLs de tile. Herda o segredo do JWT; separe para girar um sem o outro.
+    signing-secret: ${MAP_TILES_SIGNING_SECRET:${JWT_SECRET}}
+    attribution: ${MAP_TILES_ATTRIBUTION:Powered by Geoapify · © OpenMapTiles · © OpenStreetMap contributors}
   presence:
     # RF-10.7: idade máxima de uma posição para ela ainda valer como "recente" (elegibilidade, ficar
     # disponível) e TTL da réplica no Redis. Sugestão inicial da task: 5 min.
