@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -41,6 +42,12 @@ public class MapTilesController {
 
   private static final Pattern FONTSTACK = Pattern.compile("[\\p{L}\\p{N} ,_-]{1,200}");
   private static final Pattern GLYPH_RANGE = Pattern.compile("(\\d{1,5})-(\\d{1,5})");
+  private static final Pattern RASTER_FILE = Pattern.compile("(\\d{1,7})(@2x)?\\.png");
+  private static final int VECTOR_MAX_ZOOM = 14;
+
+  /** Último zoom do raster do provedor. */
+  private static final int RASTER_MAX_ZOOM = 20;
+
   private static final Set<String> SPRITE_FILES =
       Set.of("sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png");
 
@@ -89,10 +96,51 @@ public class MapTilesController {
     requireToken(token);
     // Acima de 14 o provedor não tem dado: o estilo declara maxzoom 14 e o MapLibre amplia sozinho.
     // Pedido fora da grade é erro de quem chamou, não motivo para gastar cota.
-    if (z < 0 || z > 14 || x < 0 || y < 0 || x >= (1 << z) || y >= (1 << z)) {
+    if (!insideGrid(z, x, y, VECTOR_MAX_ZOOM)) {
       throw new NotFoundException("MAP_TILE_NOT_FOUND", "Tile fora da grade do mapa.");
     }
     return serve(mapTileService.vectorTile(z, x, y), request);
+  }
+
+  /**
+   * Configuração da camada raster dos mapas 2D. Exige sessão pelo mesmo motivo do estilo: é daqui
+   * que sai o token.
+   */
+  @GetMapping("/raster/{theme}")
+  public ResponseEntity<RasterLayerResponse> rasterLayer(@PathVariable String theme) {
+    currentUserHolder.require();
+    MapTheme mapTheme = theme(theme);
+    requireEnabled();
+
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(
+            new RasterLayerResponse(
+                mapTileService.rasterUrlTemplate(mapTheme, publicBaseUrl()),
+                RASTER_MAX_ZOOM,
+                mapTileService.attribution()));
+  }
+
+  @GetMapping("/raster/{theme}/{z}/{x}/{file}")
+  public ResponseEntity<byte[]> rasterTile(
+      @PathVariable String theme,
+      @PathVariable int z,
+      @PathVariable int x,
+      @PathVariable String file,
+      @RequestParam(name = "t", required = false) String token,
+      HttpServletRequest request) {
+    requireToken(token);
+    MapTheme mapTheme = theme(theme);
+    Matcher matcher = RASTER_FILE.matcher(file);
+    if (!matcher.matches()) {
+      throw new NotFoundException("MAP_TILE_NOT_FOUND", "Tile fora da grade do mapa.");
+    }
+    int y = Integer.parseInt(matcher.group(1));
+    if (!insideGrid(z, x, y, RASTER_MAX_ZOOM)) {
+      throw new NotFoundException("MAP_TILE_NOT_FOUND", "Tile fora da grade do mapa.");
+    }
+    boolean retina = matcher.group(2) != null;
+    return serve(mapTileService.rasterTile(mapTheme, z, x, y, retina), request);
   }
 
   @GetMapping("/fonts/{theme}/{fontstack}/{range}.pbf")
@@ -162,6 +210,10 @@ public class MapTilesController {
     if (!properties.enabled()) {
       throw new NotFoundException("MAP_TILES_DISABLED", "Mapa vetorial desligado neste ambiente.");
     }
+  }
+
+  private static boolean insideGrid(int z, int x, int y, int maxZoom) {
+    return z >= 0 && z <= maxZoom && x >= 0 && y >= 0 && x < (1 << z) && y < (1 << z);
   }
 
   private MapTheme theme(String slug) {

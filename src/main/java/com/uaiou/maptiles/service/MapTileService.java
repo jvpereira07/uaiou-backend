@@ -82,6 +82,34 @@ public class MapTileService {
     return resource(path, "/v1/tile/" + path);
   }
 
+  /**
+   * Tile raster dos mapas 2D (seletor de endereço, mapas das telas principais). Mesmo estilo do
+   * tema vetorial, para o app ter uma cara só.
+   */
+  public Optional<CachedResource> rasterTile(MapTheme theme, int z, int x, int y, boolean retina) {
+    String styleId = properties.styleId(theme);
+    String file = y + (retina ? "@2x" : "") + ".png";
+    return resource(
+        "raster/" + styleId + "/" + z + "/" + x + "/" + file,
+        "/v1/tile/" + styleId + "/" + z + "/" + x + "/" + file);
+  }
+
+  /**
+   * Template no formato do Leaflet e do {@code flutter_map}: {@code {r}} vira {@code @2x} em tela
+   * de alta densidade.
+   */
+  public String rasterUrlTemplate(MapTheme theme, String publicBaseUrl) {
+    return publicBaseUrl
+        + "/map-tiles/raster/"
+        + theme.slug()
+        + "/{z}/{x}/{y}{r}.png?t="
+        + signer.currentToken();
+  }
+
+  public String attribution() {
+    return properties.attribution();
+  }
+
   public Optional<CachedResource> glyphs(MapTheme theme, String fontstack, String range) {
     String styleId = properties.styleId(theme);
     String encoded = URLEncoder.encode(fontstack, StandardCharsets.UTF_8).replace("+", "%20");
