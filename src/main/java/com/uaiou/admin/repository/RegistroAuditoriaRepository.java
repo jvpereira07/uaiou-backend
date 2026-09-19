@@ -15,4 +15,8 @@ public interface RegistroAuditoriaRepository
     extends Repository<RegistroAuditoria, UUID>, JpaSpecificationExecutor<RegistroAuditoria> {
 
   RegistroAuditoria save(RegistroAuditoria registro);
+
+  /** Intervenções do admin sobre um pedido, para a linha do tempo do espelho administrativo. */
+  java.util.List<RegistroAuditoria> findByReferenciaTipoAndReferenciaIdOrderByCriadoEmAsc(
+      String referenciaTipo, UUID referenciaId);
 }

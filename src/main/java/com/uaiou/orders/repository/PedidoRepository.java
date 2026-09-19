@@ -10,11 +10,13 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
+public interface PedidoRepository
+    extends JpaRepository<Pedido, UUID>, JpaSpecificationExecutor<Pedido> {
 
   /**
    * RF-11.4 — maior número já usado por este estabelecimento. Nativa porque {@code numero} é {@code
@@ -100,4 +102,31 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
 
   List<Pedido> findByEstabelecimentoIdAndCriadoEmBetween(
       UUID estabelecimentoId, java.time.Instant de, java.time.Instant ate);
+
+  // ---- timeouts (V26): só ids, pelo mesmo motivo de idsAguardandoChegada — quem decide é a
+  // leitura travada.
+
+  @Query("select p.id from Pedido p where p.status in :status and p.criadoEm < :limite")
+  List<UUID> idsCriadosAntesDe(
+      @Param("status") List<OrderStatus> status, @Param("limite") java.time.Instant limite);
+
+  @Query("select p.id from Pedido p where p.status in :status and p.aceitoEm < :limite")
+  List<UUID> idsAceitosAntesDe(
+      @Param("status") List<OrderStatus> status, @Param("limite") java.time.Instant limite);
+
+  /**
+   * Sinalização é uma vez por pedido: sem o {@code not exists}, o job sinalizaria a cada minuto.
+   */
+  @Query(
+      "select p.id from Pedido p where p.status in :status and p.coletadoEm < :limite"
+          + " and not exists ("
+          + "   select 1 from OcorrenciaTimeout o where o.pedidoId = p.id and o.chave = :chave)")
+  List<UUID> idsColetadosAntesDeSemOcorrencia(
+      @Param("status") List<OrderStatus> status,
+      @Param("limite") java.time.Instant limite,
+      @Param("chave") String chave);
+
+  /** Painel admin — contagem por status para o resumo do histórico. */
+  @Query("select p.status, count(p) from Pedido p group by p.status")
+  List<Object[]> contarPorStatus();
 }

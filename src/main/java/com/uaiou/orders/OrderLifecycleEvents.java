@@ -34,4 +34,28 @@ public final class OrderLifecycleEvents {
 
   /** RF-26.28 — desistência do entregador; o pedido já voltou a "publicado". */
   public record CourierWithdrew(UUID pedidoId, UUID entregadorId, WithdrawalReason reason) {}
+
+  /** Quem, fora das partes, mexeu no pedido. */
+  public enum InterventionOrigin {
+    ADMIN,
+    TIMEOUT
+  }
+
+  /** O que a intervenção fez com o pedido. */
+  public enum InterventionOutcome {
+    CANCELLED,
+    RETURNED_TO_SHOWCASE
+  }
+
+  /**
+   * Cancelamento ou devolução à vitrine feitos pela plataforma (admin ou timeout), não pelas
+   * partes. Estabelecimento e entregador vêm no evento pelo mesmo motivo de {@link Cancelled}.
+   */
+  public record PlatformIntervention(
+      UUID pedidoId,
+      UUID estabelecimentoId,
+      UUID entregadorId,
+      InterventionOrigin origin,
+      InterventionOutcome outcome,
+      List<UUID> proponentesInvalidados) {}
 }

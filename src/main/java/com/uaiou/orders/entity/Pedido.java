@@ -434,6 +434,36 @@ public class Pedido {
     this.status = OrderStatus.PUBLISHED;
   }
 
+  /**
+   * Intervenção da plataforma (admin ou timeout): tira o pedido do entregador em qualquer ponto
+   * antes da finalização. Diferente de {@link #desfazerAceite()}, alcança também o pedido já
+   * coletado — por isso limpa o marco da coleta, que só vale com entregador atribuído.
+   */
+  public void devolverAVitrine() {
+    desfazerAceite();
+    this.coletadoEm = null;
+  }
+
+  /** Estados em que a plataforma ainda pode intervir: tudo que não é terminal. */
+  public boolean emAndamento() {
+    return status == OrderStatus.PUBLISHED
+        || status == OrderStatus.IN_NEGOTIATION
+        || status == OrderStatus.ACCEPTED
+        || status == OrderStatus.PICKED_UP;
+  }
+
+  /**
+   * Finalização manual pelo admin: do coletado (entrega confirmada fora do app) ou antecipando a
+   * consolidação de um contestável. Contestável preserva o {@code finalizadoEm} original.
+   */
+  public void finalizarPeloAdmin() {
+    if (status == OrderStatus.CONTESTABLE_FINALIZED) {
+      consolidarContestavelEmFinalizado();
+    } else {
+      finalizar();
+    }
+  }
+
   private static Instant agora() {
     return Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
   }

@@ -164,6 +164,60 @@ public class OrderLifecycleFanout {
             "reason", evento.reason().code()));
   }
 
+  /** Intervenção da plataforma: as duas partes precisam saber, porque nenhuma delas agiu. */
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void aoIntervir(OrderLifecycleEvents.PlatformIntervention evento) {
+    Pedido pedido = pedidoRepository.findById(evento.pedidoId()).orElse(null);
+    if (pedido == null) {
+      return;
+    }
+    boolean cancelado = evento.outcome() == OrderLifecycleEvents.InterventionOutcome.CANCELLED;
+    String autor =
+        evento.origin() == OrderLifecycleEvents.InterventionOrigin.ADMIN
+            ? "pela administração"
+            : "por tempo esgotado";
+    Map<String, Object> payload =
+        Map.of(
+            "orderId", pedido.getId().toString(),
+            "number", pedido.getNumero(),
+            "origin", evento.origin().name().toLowerCase(),
+            "outcome", evento.outcome().name().toLowerCase());
+
+    notificationService.publicar(
+        evento.estabelecimentoId(),
+        cancelado ? NotificationType.ORDER_CANCELLED : NotificationType.ORDER_COURIER_WITHDREW,
+        cancelado ? "Pedido cancelado" : "Pedido de volta à vitrine",
+        cancelado
+            ? "O pedido nº " + pedido.getNumero() + " foi cancelado " + autor + "."
+            : "O pedido nº "
+                + pedido.getNumero()
+                + " foi retirado do entregador "
+                + autor
+                + " e voltou a ser oferecido.",
+        payload);
+
+    if (evento.entregadorId() != null) {
+      notificationService.publicar(
+          evento.entregadorId(),
+          NotificationType.ORDER_CANCELLED,
+          cancelado ? "Pedido cancelado" : "Pedido retirado de você",
+          (cancelado ? "O pedido nº " : "Você não está mais atribuído ao pedido nº ")
+              + pedido.getNumero()
+              + (cancelado ? " foi cancelado " + autor + "." : " (" + autor + ")."),
+          payload);
+    }
+
+    for (UUID proponente : evento.proponentesInvalidados()) {
+      notificationService.publicar(
+          proponente,
+          NotificationType.COUNTEROFFER_DECIDED,
+          "Proposta não avaliada",
+          "O pedido nº " + pedido.getNumero() + " foi cancelado " + autor + ".",
+          Map.of("orderId", pedido.getId().toString(), "outcome", "invalidated"));
+    }
+  }
+
   private String nomeDe(UUID usuarioId, String padrao) {
     return usuarioRepository.findById(usuarioId).map(Usuario::getNomeExibicao).orElse(padrao);
   }
