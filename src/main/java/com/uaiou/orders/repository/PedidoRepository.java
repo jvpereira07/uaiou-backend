@@ -126,6 +126,16 @@ public interface PedidoRepository
       @Param("limite") java.time.Instant limite,
       @Param("chave") String chave);
 
+  /** V27 — cancelamentos da própria loja na janela; os da plataforma ficam de fora. */
+  @Query(
+      "select p.canceladoEm from Pedido p where p.estabelecimentoId = :estabelecimentoId"
+          + " and p.status = com.uaiou.orders.OrderStatus.CANCELLED and p.canceladoEm > :desde"
+          + " and p.cancelamentoMotivo not in :motivosExcluidos")
+  List<java.time.Instant> cancelamentosDoEstabelecimentoDesde(
+      @Param("estabelecimentoId") UUID estabelecimentoId,
+      @Param("desde") java.time.Instant desde,
+      @Param("motivosExcluidos") List<String> motivosExcluidos);
+
   /** Painel admin — contagem por status para o resumo do histórico. */
   @Query("select p.status, count(p) from Pedido p group by p.status")
   List<Object[]> contarPorStatus();

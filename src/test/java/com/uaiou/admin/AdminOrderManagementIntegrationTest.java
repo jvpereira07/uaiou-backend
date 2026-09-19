@@ -193,6 +193,44 @@ class AdminOrderManagementIntegrationTest extends AbstractAuthIntegrationTest {
   }
 
   @Test
+  void aMerchantOverTheCancellationLimitCannotPublish() {
+    RegisteredTestUser merchant = merchantComCoordenada();
+    UUID pedidoId = publicar(merchant);
+    AdminSession admin = loginAdmin();
+
+    try {
+      ResponseEntity<Map<String, Object>> ajuste =
+          restTemplate.exchange(
+              baseUrl("/admin/limits/merchant_cancellations"),
+              HttpMethod.PUT,
+              authed(
+                  admin.accessToken(),
+                  Map.of("max", 1, "windowMinutes", 60, "blockMinutes", 60, "active", true)),
+              JSON);
+      assertThat(ajuste.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+      restTemplate.exchange(
+          baseUrl("/orders/" + pedidoId + "/cancellation"),
+          HttpMethod.POST,
+          authed(login(merchant).accessToken(), Map.of("reason", "customer_gave_up")),
+          Object.class);
+
+      ResponseEntity<ErrorResponse> resposta =
+          restTemplate.exchange(
+              baseUrl("/orders"),
+              HttpMethod.POST,
+              authed(login(merchant).accessToken(), novoPedido()),
+              ErrorResponse.class);
+      assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+      assertThat(resposta.getBody().error().code()).isEqualTo("CANCELLATION_LIMIT_REACHED");
+    } finally {
+      jdbcTemplate.update(
+          "update limite_comportamento set maximo = 5, janela_minutos = 1440,"
+              + " bloqueio_minutos = 120, ativo = false where chave = 'cancelamento_estabelecimento'");
+    }
+  }
+
+  @Test
   void aNonAdminCannotChangeAnOrder() {
     RegisteredTestUser merchant = merchantComCoordenada();
     UUID pedidoId = publicar(merchant);
@@ -272,26 +310,28 @@ class AdminOrderManagementIntegrationTest extends AbstractAuthIntegrationTest {
   }
 
   private UUID publicar(RegisteredTestUser merchant) {
-    CreateOrderRequest request =
-        new CreateOrderRequest(
-            Money.of("9.00"),
-            null,
-            new DestinationRequest(
-                "Rua Beija-Flor",
-                "45",
-                null,
-                "Jardim Independencia",
-                "Belo Horizonte",
-                new BigDecimal(DEST_LAT),
-                new BigDecimal(DEST_LONG)),
-            new CreateOrderRequest.ReceiverRequest("Marina Alves", "31998877665"));
     return restTemplate
         .exchange(
             baseUrl("/orders"),
             HttpMethod.POST,
-            authed(login(merchant).accessToken(), request),
+            authed(login(merchant).accessToken(), novoPedido()),
             OrderResponse.class)
         .getBody()
         .id();
+  }
+
+  private static CreateOrderRequest novoPedido() {
+    return new CreateOrderRequest(
+        Money.of("9.00"),
+        null,
+        new DestinationRequest(
+            "Rua Beija-Flor",
+            "45",
+            null,
+            "Jardim Independencia",
+            "Belo Horizonte",
+            new BigDecimal(DEST_LAT),
+            new BigDecimal(DEST_LONG)),
+        new CreateOrderRequest.ReceiverRequest("Marina Alves", "31998877665"));
   }
 }

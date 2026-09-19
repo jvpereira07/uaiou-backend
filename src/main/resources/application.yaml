@@ -126,9 +126,6 @@ app:
     reminder-min-interval: ${PICKUP_REMINDER_MIN_INTERVAL:PT2M}
     # RF-26.17/RF-26.18: fração do frete final devida ao entregador quando a loja cancela após a chegada.
     arrived-cancellation-fee-rate: ${PICKUP_ARRIVED_CANCELLATION_FEE_RATE:0.50}
-    # RF-26.29: desistências que contam em 24 h até o bloqueio de aceite, e duração do bloqueio.
-    withdrawal-max-per24h: ${WITHDRAWAL_MAX_PER_24H:3}
-    withdrawal-cooldown: ${WITHDRAWAL_COOLDOWN:PT2H}
     # RF-26.30: espera na loja a partir da qual desistir por atraso não penaliza.
     withdrawal-pickup-delay-tolerance: ${WITHDRAWAL_PICKUP_DELAY_TOLERANCE:PT15M}
   orders:

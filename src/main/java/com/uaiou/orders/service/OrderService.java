@@ -61,6 +61,7 @@ public class OrderService {
   private final ApplicationEventPublisher events;
   private final PickupService pickupService;
   private final UploadService uploadService;
+  private final MerchantCancellationLimitPolicy cancellationLimitPolicy;
 
   public OrderService(
       PedidoRepository pedidoRepository,
@@ -73,7 +74,9 @@ public class OrderService {
       OrderEligibilityService eligibilityService,
       ApplicationEventPublisher events,
       PickupService pickupService,
-      UploadService uploadService) {
+      UploadService uploadService,
+      MerchantCancellationLimitPolicy cancellationLimitPolicy) {
+    this.cancellationLimitPolicy = cancellationLimitPolicy;
     this.pickupService = pickupService;
     this.uploadService = uploadService;
     this.pedidoRepository = pedidoRepository;
@@ -105,6 +108,7 @@ public class OrderService {
       throw new ForbiddenException(
           "ACCOUNT_NOT_ACTIVE", "Só uma conta ativa pode publicar pedidos.");
     }
+    cancellationLimitPolicy.exigirForaDoBloqueio(estabelecimentoId);
     if (!request.proposedFee().isPositive()) {
       throw new BadRequestException("INVALID_FIELD", "\"proposedFee\" precisa ser maior que zero.");
     }
