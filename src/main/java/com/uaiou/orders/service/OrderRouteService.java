@@ -174,7 +174,11 @@ public class OrderRouteService {
                 passo ->
                     new OrderRouteResponse.Step(
                         passo.instruction(), passo.distanceMeters(), passo.pointIndex()))
-            .toList());
+            .toList(),
+        // Com loja no caminho a rota tem uma parada intermediária: ela.
+        passaPelaLoja && !rota.waypointIndices().isEmpty()
+            ? rota.waypointIndices().getFirst()
+            : null);
   }
 
   private Point pontoDoEntregador(Entregador entregador) {

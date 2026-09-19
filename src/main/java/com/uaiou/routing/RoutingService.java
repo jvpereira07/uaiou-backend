@@ -41,5 +41,19 @@ public interface RoutingService {
    *     da vitrine (RF-25.8): as duas medidas coexistem e o cliente precisa saber qual é qual.
    * @param geometry traçado contínuo, na ordem em que se percorre.
    */
-  record Route(BigDecimal distanceKm, Duration duration, List<Point> geometry, List<Step> steps) {}
+  /**
+   * @param waypointIndices índice, na {@code geometry}, de cada parada intermediária (o ponto onde
+   *     uma perna termina e a próxima começa). Vazio quando o provedor não separou as pernas.
+   */
+  record Route(
+      BigDecimal distanceKm,
+      Duration duration,
+      List<Point> geometry,
+      List<Step> steps,
+      List<Integer> waypointIndices) {
+
+    public Route(BigDecimal distanceKm, Duration duration, List<Point> geometry, List<Step> steps) {
+      this(distanceKm, duration, geometry, steps, List.of());
+    }
+  }
 }

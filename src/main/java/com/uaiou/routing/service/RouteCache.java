@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -65,7 +66,7 @@ public class RouteCache {
   }
 
   /**
-   * {@code distanciaKm;segundos;lat,lng|...;texto,metros,segundos,indice|...}
+   * {@code distanciaKm;segundos;lat,lng|...;texto,metros,segundos,indice|...;parada,...}
    *
    * <p>O texto da instrução vai <strong>percent-encoded</strong>: vem do provedor, em português,
    * com vírgula e acento — inseri-lo cru num formato separado por vírgula seria um bug esperando a
@@ -95,13 +96,35 @@ public class RouteCache {
           .append(passo.pointIndex());
     }
 
-    return route.distanceKm() + ";" + route.duration().toSeconds() + ";" + geometria + ";" + passos;
+    String paradas =
+        route.waypointIndices().stream().map(String::valueOf).collect(Collectors.joining(","));
+    return route.distanceKm()
+        + ";"
+        + route.duration().toSeconds()
+        + ";"
+        + geometria
+        + ";"
+        + passos
+        + ";"
+        + paradas;
+  }
+
+  private static List<Integer> paradas(String bruto) {
+    if (bruto.isEmpty()) {
+      return List.of();
+    }
+    List<Integer> indices = new ArrayList<>();
+    for (String indice : bruto.split(",")) {
+      indices.add(Integer.parseInt(indice));
+    }
+    return List.copyOf(indices);
   }
 
   private Optional<Route> deserialize(String value) {
     try {
       String[] parts = value.split(";", -1);
-      if (parts.length != 4) {
+      // 4 partes é o formato de antes das paradas: entrada ainda válida, só sem elas.
+      if (parts.length != 4 && parts.length != 5) {
         return Optional.empty();
       }
 
@@ -134,7 +157,8 @@ public class RouteCache {
               new BigDecimal(parts[0]),
               Duration.ofSeconds(Long.parseLong(parts[1])),
               List.copyOf(geometria),
-              List.copyOf(passos)));
+              List.copyOf(passos),
+              paradas(parts.length == 5 ? parts[4] : "")));
     } catch (RuntimeException e) {
       // Formato inesperado (deploy antigo, chave escrita à mão) é acerto perdido, nunca erro.
       log.warn("Entrada de rota ilegível no cache — tratada como ausente.", e);

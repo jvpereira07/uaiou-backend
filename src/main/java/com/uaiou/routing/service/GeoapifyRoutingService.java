@@ -62,7 +62,7 @@ public class GeoapifyRoutingService implements RoutingService {
               .retrieve()
               .body(GeoapifyResponse.class);
 
-      Optional<Route> rota = converter(resposta);
+      Optional<Route> rota = converter(resposta, waypoints.size());
       log.info(
           "routing.provider outcome={} waypoints={} elapsedMs={}",
           rota.isPresent() ? "OK" : "EMPTY",
@@ -86,7 +86,7 @@ public class GeoapifyRoutingService implements RoutingService {
         .collect(Collectors.joining("|"));
   }
 
-  private Optional<Route> converter(GeoapifyResponse resposta) {
+  private Optional<Route> converter(GeoapifyResponse resposta, int quantidadeDeWaypoints) {
     if (resposta == null || resposta.features() == null || resposta.features().isEmpty()) {
       return Optional.empty();
     }
@@ -112,7 +112,26 @@ public class GeoapifyRoutingService implements RoutingService {
             Duration.ofSeconds(
                 feature.properties().time() == null ? 0 : Math.round(feature.properties().time())),
             geometria,
-            instrucoes(feature.properties().legs(), pernas)));
+            instrucoes(feature.properties().legs(), pernas),
+            paradas(pernas, quantidadeDeWaypoints)));
+  }
+
+  /**
+   * Onde cada perna termina na geometria emendada — é o que permite ao cliente separar "até a loja"
+   * de "da loja até a entrega" no ponto exato, em vez de adivinhar pelo meio do traçado. Só vale
+   * quando o provedor devolveu uma perna por trecho; do contrário, vazio.
+   */
+  private List<Integer> paradas(List<List<Point>> pernas, int quantidadeDeWaypoints) {
+    if (pernas.size() != quantidadeDeWaypoints - 1 || pernas.size() < 2) {
+      return List.of();
+    }
+    List<Integer> indices = new ArrayList<>();
+    int acumulado = 0;
+    for (int i = 0; i < pernas.size() - 1; i++) {
+      acumulado += pernas.get(i).size();
+      indices.add(acumulado - 1);
+    }
+    return List.copyOf(indices);
   }
 
   /**

@@ -21,6 +21,9 @@ import java.util.UUID;
  * @param includesPickup {@code false} quando o estabelecimento não tem coordenada (RF-25.5): a rota
  *     ainda existe, mas vai direto ao destino. Dizer isso é o que impede o app de afirmar uma
  *     passagem pela loja que o trajeto não tem.
+ *     <p>{@code route.pickupPointIndex} é o índice, em {@code geometry}, do ponto da loja — onde a
+ *     perna "até a loja" termina e a "até a entrega" começa. Nulo sem loja no caminho ou quando o
+ *     provedor não separou as pernas; aí o cliente não divide o traçado.
  * @param attribution RNF-25.2 — atribuição exigida pela licença do provedor, para o cliente exibir.
  */
 public record OrderRouteResponse(
@@ -42,7 +45,8 @@ public record OrderRouteResponse(
       BigDecimal roadDistanceKm,
       Integer durationMinutes,
       List<Coordinate> geometry,
-      List<Step> steps) {
+      List<Step> steps,
+      Integer pickupPointIndex) {
 
     /** Sem posição do entregador não há de onde partir. */
     public static final String COURIER_LOCATION_UNKNOWN = "COURIER_LOCATION_UNKNOWN";
@@ -51,7 +55,7 @@ public record OrderRouteResponse(
     public static final String ROUTING_UNAVAILABLE = "ROUTING_UNAVAILABLE";
 
     public static Route unavailable(String reason) {
-      return new Route(false, reason, false, null, null, null, null);
+      return new Route(false, reason, false, null, null, null, null, null);
     }
   }
 
