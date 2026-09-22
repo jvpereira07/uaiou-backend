@@ -5,6 +5,8 @@ import com.uaiou.feira.config.FeiraProperties;
 import com.uaiou.feira.dto.FeiraDtos.CapturaAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.CapturaResponse;
 import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
+import com.uaiou.feira.dto.FeiraDtos.EstandeRequest;
+import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoResponse;
 import com.uaiou.feira.entity.FeiraCaptura;
@@ -17,7 +19,9 @@ import com.uaiou.shared.error.ConflictException;
 import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.shared.id.UuidV7;
 import com.uaiou.users.entity.Entregador;
+import com.uaiou.users.entity.Estabelecimento;
 import com.uaiou.users.repository.EntregadorRepository;
+import com.uaiou.users.repository.EstabelecimentoRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +43,7 @@ public class FeiraOrderService {
   private final PedidoRepository pedidoRepository;
   private final FeiraCapturaRepository capturaRepository;
   private final EntregadorRepository entregadorRepository;
+  private final EstabelecimentoRepository estabelecimentoRepository;
   private final FeiraProperties properties;
   private final GeofenceEvaluator geofenceEvaluator;
   private final ApplicationEventPublisher events;
@@ -47,15 +52,42 @@ public class FeiraOrderService {
       PedidoRepository pedidoRepository,
       FeiraCapturaRepository capturaRepository,
       EntregadorRepository entregadorRepository,
+      EstabelecimentoRepository estabelecimentoRepository,
       FeiraProperties properties,
       GeofenceEvaluator geofenceEvaluator,
       ApplicationEventPublisher events) {
     this.pedidoRepository = pedidoRepository;
     this.capturaRepository = capturaRepository;
     this.entregadorRepository = entregadorRepository;
+    this.estabelecimentoRepository = estabelecimentoRepository;
     this.properties = properties;
     this.geofenceEvaluator = geofenceEvaluator;
     this.events = events;
+  }
+
+  /**
+   * Onde fica o estande, no mapa. O jogador vai até lá para a coleta, então esta coordenada é o que
+   * o app desenha como origem da entrega — e num evento ela só se conhece no dia, montando a mesa,
+   * o que é o motivo de isto ser tela e não seed.
+   */
+  @Transactional(readOnly = true)
+  public EstandeResponse estande() {
+    Estabelecimento uaiou = estandeUaiOu();
+    return new EstandeResponse(uaiou.getLat(), uaiou.getLongitude());
+  }
+
+  @Transactional
+  public EstandeResponse moverEstande(EstandeRequest request) {
+    Estabelecimento uaiou = estandeUaiOu();
+    uaiou.atualizarEndereco(null, null, null, null, null, request.lat(), request.longitude());
+    return new EstandeResponse(uaiou.getLat(), uaiou.getLongitude());
+  }
+
+  private Estabelecimento estandeUaiOu() {
+    return estabelecimentoRepository
+        .findById(properties.estabelecimentoId())
+        .orElseThrow(
+            () -> new NotFoundException("ESTANDE_NOT_FOUND", "Estabelecimento UaiOu não existe."));
   }
 
   @Transactional

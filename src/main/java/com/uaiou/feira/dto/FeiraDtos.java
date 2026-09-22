@@ -77,6 +77,16 @@ public final class FeiraDtos {
       Instant capturadoEm,
       Instant entregueEm) {}
 
+  /**
+   * Ponto do estande UaiOu. É de lá que o jogador retira, então ele precisa aparecer no mapa do app
+   * — e a posição da mesa só se sabe no dia, por isso é editável no painel.
+   */
+  public record EstandeRequest(
+      @NotNull @DecimalMin("-90") @DecimalMax("90") BigDecimal lat,
+      @NotNull @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude) {}
+
+  public record EstandeResponse(BigDecimal lat, BigDecimal longitude) {}
+
   /** Visão do operador sobre o pedido, com o estoque à vista. */
   public record PedidoAdminResponse(
       UUID id,

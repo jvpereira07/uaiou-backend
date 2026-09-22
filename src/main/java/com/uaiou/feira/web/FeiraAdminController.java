@@ -4,6 +4,8 @@ import com.uaiou.auth.web.AuthenticatedUser;
 import com.uaiou.auth.web.CurrentUserHolder;
 import com.uaiou.feira.dto.FeiraDtos.CapturaAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
+import com.uaiou.feira.dto.FeiraDtos.EstandeRequest;
+import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
 import com.uaiou.feira.service.FeiraGuard;
 import com.uaiou.feira.service.FeiraOrderService;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -33,6 +36,21 @@ public class FeiraAdminController {
     this.orderService = orderService;
     this.guard = guard;
     this.currentUserHolder = currentUserHolder;
+  }
+
+  /** Onde o estande está montado — origem da coleta e do mapa no app. */
+  @GetMapping("/estande")
+  public EstandeResponse estande() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.estande();
+  }
+
+  @PutMapping("/estande")
+  public EstandeResponse moverEstande(@Valid @RequestBody EstandeRequest request) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.moverEstande(request);
   }
 
   @PostMapping("/pedidos")
