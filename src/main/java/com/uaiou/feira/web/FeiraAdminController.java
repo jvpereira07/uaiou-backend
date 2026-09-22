@@ -1,0 +1,75 @@
+package com.uaiou.feira.web;
+
+import com.uaiou.auth.web.AuthenticatedUser;
+import com.uaiou.auth.web.CurrentUserHolder;
+import com.uaiou.feira.dto.FeiraDtos.CapturaAdminResponse;
+import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
+import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
+import com.uaiou.feira.service.FeiraGuard;
+import com.uaiou.feira.service.FeiraOrderService;
+import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/** Operação do estande: publicar pedido, acompanhar capturas, entregar o prêmio, encerrar. */
+@RestController
+@RequestMapping("/admin/feira")
+public class FeiraAdminController {
+
+  private final FeiraOrderService orderService;
+  private final FeiraGuard guard;
+  private final CurrentUserHolder currentUserHolder;
+
+  public FeiraAdminController(
+      FeiraOrderService orderService, FeiraGuard guard, CurrentUserHolder currentUserHolder) {
+    this.orderService = orderService;
+    this.guard = guard;
+    this.currentUserHolder = currentUserHolder;
+  }
+
+  @PostMapping("/pedidos")
+  @ResponseStatus(HttpStatus.CREATED)
+  public PedidoAdminResponse publicar(@Valid @RequestBody CriarPedidoRequest request) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.publicar(request);
+  }
+
+  @GetMapping("/pedidos")
+  public List<PedidoAdminResponse> pedidos() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.listarParaAdmin();
+  }
+
+  @GetMapping("/pedidos/{pedidoId}/capturas")
+  public List<CapturaAdminResponse> capturas(@PathVariable UUID pedidoId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.capturasDoPedido(pedidoId);
+  }
+
+  /** Balcão: o visitante mostra a tela, o operador confirma que passou o Bis. */
+  @PostMapping("/capturas/{capturaId}/entrega")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void entregar(@PathVariable UUID capturaId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    orderService.marcarEntregue(capturaId);
+  }
+
+  @PostMapping("/pedidos/{pedidoId}/encerramento")
+  public PedidoAdminResponse encerrar(@PathVariable UUID pedidoId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.encerrar(pedidoId);
+  }
+}

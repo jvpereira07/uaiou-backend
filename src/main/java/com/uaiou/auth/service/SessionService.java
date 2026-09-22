@@ -228,6 +228,17 @@ public class SessionService {
     }
   }
 
+  /**
+   * Modo feira (docs/feira/01-fluxos.md): a entrada do jogador não prova credencial nenhuma — não
+   * há senha —, então ela emite a sessão direto em vez de passar por um grantType. Exposto aqui, e
+   * não reimplementado no módulo da feira, para refresh token e família continuarem tendo um dono
+   * só.
+   */
+  @Transactional
+  public SessionResponse issueSessionWithoutCredentials(Usuario usuario) {
+    return issueNewSession(usuario);
+  }
+
   private SessionResponse issueNewSession(Usuario usuario) {
     return issueSessionInFamily(usuario, UuidV7.next());
   }

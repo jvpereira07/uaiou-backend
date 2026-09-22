@@ -53,6 +53,12 @@ logging:
     root: INFO
 
 app:
+  feira:
+    # Modo feira (docs/feira/): demonstracao de estande. Desligado por padrao — com ele ligado as
+    # rotas /feira e /admin/feira existem; desligado, respondem 404.
+    enabled: ${FEIRA_ENABLED:false}
+    # Estabelecimento "UaiOu", semeado por V28__feira.sql.
+    estabelecimento-id: ${FEIRA_ESTABELECIMENTO_ID:00000000-0000-0000-0000-0000000000fe}
   admin-bootstrap:
     # Admin criado no primeiro boot de um banco vazio (nenhuma migration insere dados e o
     # autorregistro recusa ADMIN). Defaults triviais de propósito: um ambiente local sobe sem

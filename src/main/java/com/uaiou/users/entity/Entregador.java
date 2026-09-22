@@ -85,8 +85,33 @@ public class Entregador {
   @Column(name = "forma_pagamento")
   private Set<PaymentMethod> formasPagamento = new HashSet<>();
 
+  /**
+   * Modo feira (V28__feira.sql): o jogador é identificado pelo nome de usuário, não por CPF. Nulo
+   * em todo entregador do produto — o índice único é parcial por isso.
+   */
+  @Column(name = "username")
+  private String username;
+
   protected Entregador() {
     // exigido pela JPA
+  }
+
+  /** Jogador do modo feira: sem CPF, sem veículo, sem documento. */
+  public static Entregador jogadorDeFeira(Usuario usuario, String username) {
+    Entregador jogador = new Entregador();
+    jogador.usuario = usuario;
+    jogador.username = username;
+    jogador.disponivel = true;
+    jogador.entregasRealizadas = 0;
+    return jogador;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public Usuario getUsuario() {
+    return usuario;
   }
 
   public Entregador(Usuario usuario, String cpf, String veiculoTipo, String veiculoPlaca) {

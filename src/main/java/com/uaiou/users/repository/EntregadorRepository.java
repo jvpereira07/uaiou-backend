@@ -3,6 +3,7 @@ package com.uaiou.users.repository;
 import com.uaiou.users.entity.Entregador;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +12,9 @@ import org.springframework.data.repository.query.Param;
 public interface EntregadorRepository extends JpaRepository<Entregador, UUID> {
 
   boolean existsByCpf(String cpf);
+
+  /** Modo feira (V28__feira.sql): o jogador é achado pelo nome de usuário. */
+  Optional<Entregador> findByUsername(String username);
 
   /**
    * RF-10.6/RF-10.7 — fonte de verdade da elegibilidade por presença: disponível E com posição

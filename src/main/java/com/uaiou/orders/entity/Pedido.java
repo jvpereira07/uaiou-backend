@@ -110,6 +110,22 @@ public class Pedido {
   @Column(name = "atualizado_em")
   private Instant atualizadoEm;
 
+  // --- Modo feira (V28__feira.sql, docs/feira/) --------------------------------------------
+  // O pedido da feira é o mesmo pedido, com o dinheiro trocado por um prêmio em texto e um
+  // estoque. feiraRecompensa não-nulo é o que distingue os dois no banco e no código.
+
+  @Column(name = "feira_recompensa")
+  private String feiraRecompensa;
+
+  @Column(name = "feira_limite")
+  private Integer feiraLimite;
+
+  @Column(name = "feira_capturas")
+  private int feiraCapturas;
+
+  @Column(name = "feira_encerrado_em")
+  private Instant feiraEncerradoEm;
+
   protected Pedido() {
     // exigido pela JPA
   }
@@ -140,6 +156,40 @@ public class Pedido {
     // RF-11.3: nasce "criado" e só vira "publicado" ao fim da transação, depois do crédito
     // debitado.
     this.status = OrderStatus.CREATED;
+  }
+
+  /**
+   * Pedido do modo feira (docs/feira/01-fluxos.md): só localização, recompensa em texto e estoque.
+   * Nasce direto em {@link OrderStatus#PUBLISHED} — não há crédito a debitar entre criar e
+   * publicar, que é o motivo de o pedido do produto passar por {@code CREATED}.
+   *
+   * <p>O rótulo do ponto ("mesa do café") vai em {@code destBairro}: é o único campo de texto livre
+   * do endereço, já está na listagem, e inventar uma coluna para um apelido de ponto num salão
+   * seria schema a mais para a mesma informação.
+   */
+  public static Pedido paraFeira(
+      UUID id,
+      String numero,
+      UUID estabelecimentoId,
+      BigDecimal lat,
+      BigDecimal longitude,
+      String rotulo,
+      String recompensa,
+      int limite) {
+    Pedido pedido = new Pedido();
+    pedido.id = id;
+    pedido.numero = numero;
+    pedido.estabelecimentoId = estabelecimentoId;
+    pedido.destLat = lat;
+    pedido.destLong = longitude;
+    pedido.destBairro = rotulo;
+    pedido.freteProposto = Money.zero();
+    pedido.creditosConsumidos = 0;
+    pedido.feiraRecompensa = recompensa;
+    pedido.feiraLimite = limite;
+    pedido.feiraCapturas = 0;
+    pedido.status = OrderStatus.PUBLISHED;
+    return pedido;
   }
 
   /**
@@ -252,6 +302,58 @@ public class Pedido {
     this.freteFinal = valorProposto;
     this.status = OrderStatus.ACCEPTED;
     this.aceitoEm = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+  }
+
+  // --- Modo feira: comportamento do pedido-prêmio -------------------------------------------
+
+  public boolean isFeira() {
+    return feiraRecompensa != null;
+  }
+
+  public String getFeiraRecompensa() {
+    return feiraRecompensa;
+  }
+
+  public Integer getFeiraLimite() {
+    return feiraLimite;
+  }
+
+  public int getFeiraCapturas() {
+    return feiraCapturas;
+  }
+
+  public int getFeiraRestantes() {
+    return feiraLimite == null ? 0 : feiraLimite - feiraCapturas;
+  }
+
+  public Instant getFeiraEncerradoEm() {
+    return feiraEncerradoEm;
+  }
+
+  public boolean isFeiraCapturavel() {
+    return isFeira() && feiraEncerradoEm == null && getFeiraRestantes() > 0;
+  }
+
+  /**
+   * Consome uma unidade do estoque. Só é correto sob trava da linha (findByIdForUpdate): duas
+   * capturas simultâneas na última unidade leriam o mesmo contador e passariam as duas. A
+   * constraint ck_pedido_feira_capturas é a rede embaixo disso.
+   *
+   * <p>Zerar o estoque encerra o pedido no mesmo movimento — assim o pedido some da vitrine sem
+   * depender de o operador reparar.
+   */
+  public void capturarNaFeira() {
+    feiraCapturas++;
+    if (getFeiraRestantes() == 0) {
+      encerrarNaFeira();
+    }
+  }
+
+  /** Encerramento manual pelo operador: para de aceitar capturas, não desfaz as já feitas. */
+  public void encerrarNaFeira() {
+    if (feiraEncerradoEm == null) {
+      feiraEncerradoEm = Instant.now();
+    }
   }
 
   /** RF-11.3 — último passo da transação de criação, depois do crédito já debitado. */

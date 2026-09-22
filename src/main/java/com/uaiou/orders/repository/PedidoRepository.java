@@ -38,6 +38,9 @@ public interface PedidoRepository
    * já atualizado — é o lock que garante "um entregador por pedido" (RN-01.2), não uma verificação
    * otimista, que aqui só produziria retry no cliente numa disputa frequente.
    */
+  /** Modo feira: o pedido-prêmio é identificado por ter recompensa em texto (V28__feira.sql). */
+  List<Pedido> findByFeiraRecompensaIsNotNullOrderByCriadoEmDesc();
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select p from Pedido p where p.id = :id")
   Optional<Pedido> findByIdForUpdate(@Param("id") UUID id);
