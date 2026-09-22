@@ -124,7 +124,12 @@ app:
   pickup:
     # T-26 — valores provisórios (D4, D8); calibrar com dado de produção.
     # RF-26.2: raio da loja (maior que o geofence de entrega: galeria, shopping, rua sem vaga).
-    radius-meters: ${PICKUP_RADIUS_METERS:150}
+    #
+    # Modo feira (docs/feira/): 2 m. O estande e os pontos ficam a metros um do outro, e com o
+    # raio do produto (150 m) o check-in valeria do salão inteiro — chegar deixaria de significar
+    # coisa alguma. Continua vindo de variável para ser calibrado no dia, sem deploy, que é
+    # justamente o que a precisão de GPS no local vai exigir.
+    radius-meters: ${PICKUP_RADIUS_METERS:2}
     # RF-26.2: leituras consecutivas no raio antes de registrar a chegada.
     required-readings: ${PICKUP_REQUIRED_READINGS:2}
     # RF-26.10: espera desde a chegada até o entregador poder pedir novo aviso, e intervalo entre avisos.
