@@ -33,14 +33,22 @@ public class FeiraCaptura {
   @Column(name = "entregue_em")
   private Instant entregueEm;
 
+  /**
+   * V29 — o pedido que esta captura gerou. É por ele que o jogador executa a entrega: a captura
+   * vira um pedido atribuído e o fluxo do produto assume daí.
+   */
+  @Column(name = "pedido_gerado_id")
+  private UUID pedidoGeradoId;
+
   protected FeiraCaptura() {
     // exigido pela JPA
   }
 
-  public FeiraCaptura(UUID id, UUID pedidoId, UUID entregadorId) {
+  public FeiraCaptura(UUID id, UUID pedidoId, UUID entregadorId, UUID pedidoGeradoId) {
     this.id = id;
     this.pedidoId = pedidoId;
     this.entregadorId = entregadorId;
+    this.pedidoGeradoId = pedidoGeradoId;
   }
 
   public UUID getId() {
@@ -61,6 +69,10 @@ public class FeiraCaptura {
 
   public Instant getEntregueEm() {
     return entregueEm;
+  }
+
+  public UUID getPedidoGeradoId() {
+    return pedidoGeradoId;
   }
 
   /** Idempotente: o operador clicar duas vezes não reescreve a hora da entrega. */

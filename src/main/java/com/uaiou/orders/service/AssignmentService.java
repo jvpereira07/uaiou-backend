@@ -5,6 +5,7 @@ import com.uaiou.counteroffers.entity.Contraoferta;
 import com.uaiou.counteroffers.repository.ContraofertaRepository;
 import com.uaiou.delivery.repository.OtpRepository;
 import com.uaiou.delivery.service.DeliveryCodeService;
+import com.uaiou.feira.service.FeiraOrderService;
 import com.uaiou.orders.OrderAssignedEvent;
 import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.dto.AssignmentResponse;
@@ -32,19 +33,29 @@ public class AssignmentService {
   private final CourierEligibilityGuard eligibilityGuard;
   private final ApplicationEventPublisher events;
 
+  /**
+   * Modo feira (docs/feira/). É a única dependência do produto para o módulo da feira, e ela
+   * inverte a direção normal — o feira é que conhece o produto. Aceita de propósito nesta branch,
+   * que nunca é mesclada: manter o aceite no endpoint do produto é o que faz a vitrine, o histórico
+   * e a tela de entrega do app funcionarem sem nenhuma versão paralela.
+   */
+  private final FeiraOrderService feiraCapture;
+
   public AssignmentService(
       PedidoRepository pedidoRepository,
       ContraofertaRepository contraofertaRepository,
       OtpRepository otpRepository,
       DeliveryCodeService deliveryCodeService,
       CourierEligibilityGuard eligibilityGuard,
-      ApplicationEventPublisher events) {
+      ApplicationEventPublisher events,
+      FeiraOrderService feiraCapture) {
     this.pedidoRepository = pedidoRepository;
     this.contraofertaRepository = contraofertaRepository;
     this.otpRepository = otpRepository;
     this.deliveryCodeService = deliveryCodeService;
     this.eligibilityGuard = eligibilityGuard;
     this.events = events;
+    this.feiraCapture = feiraCapture;
   }
 
   /**
@@ -61,6 +72,15 @@ public class AssignmentService {
   @Transactional
   public AssignmentResponse accept(UUID entregadorId, UUID pedidoId) {
     Pedido pedido = pedidoRepository.findByIdForUpdate(pedidoId).orElseThrow(this::notFound);
+
+    // Modo feira (docs/feira/): o que está na vitrine é um MODELO, e aceitar não o atribui — cria
+    // uma cópia atribuída a quem aceitou, para várias pessoas pegarem o mesmo prêmio. Deste ponto
+    // em diante o pedido do jogador é um pedido comum, e o resto do produto (coleta, entrega com
+    // GPS, histórico) roda sem saber que a feira existe.
+    if (pedido.isFeiraModelo()) {
+      UUID instanciaId = feiraCapture.capturar(pedidoId, entregadorId).pedidoGeradoId();
+      return toResponse(pedidoRepository.findById(instanciaId).orElseThrow(this::notFound));
+    }
 
     if (pedido.estaAtribuidoA(entregadorId)) {
       return toResponse(pedido);

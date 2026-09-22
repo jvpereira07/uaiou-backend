@@ -126,6 +126,10 @@ public class Pedido {
   @Column(name = "feira_encerrado_em")
   private Instant feiraEncerradoEm;
 
+  /** V29 — instância aponta para o modelo que a gerou; nulo no modelo e no pedido do produto. */
+  @Column(name = "feira_origem_id")
+  private UUID feiraOrigemId;
+
   protected Pedido() {
     // exigido pela JPA
   }
@@ -189,6 +193,34 @@ public class Pedido {
     pedido.feiraLimite = limite;
     pedido.feiraCapturas = 0;
     pedido.status = OrderStatus.PUBLISHED;
+    return pedido;
+  }
+
+  /**
+   * Instância do modelo para um jogador (V29__feira_pedido_por_jogador.sql): um pedido de verdade,
+   * já atribuído, que entra no fluxo normal do produto — vitrine, coleta no estabelecimento,
+   * entrega com GPS e histórico funcionam sem nenhuma adaptação porque isto É um pedido.
+   *
+   * <p>Nasce em {@link OrderStatus#ACCEPTED} e não em {@code PUBLISHED}: a captura é o aceite. O
+   * que o produto faria em dois passos (publicar, alguém aceitar) aqui é um só, porque o pedido
+   * nasce do gesto de um jogador específico.
+   */
+  public static Pedido instanciaDeFeira(UUID id, String numero, Pedido modelo, UUID entregadorId) {
+    Pedido pedido = new Pedido();
+    pedido.id = id;
+    pedido.numero = numero;
+    pedido.estabelecimentoId = modelo.estabelecimentoId;
+    pedido.destLat = modelo.destLat;
+    pedido.destLong = modelo.destLong;
+    pedido.destBairro = modelo.destBairro;
+    pedido.freteProposto = Money.zero();
+    pedido.freteFinal = Money.zero();
+    pedido.creditosConsumidos = 0;
+    pedido.feiraRecompensa = modelo.feiraRecompensa;
+    pedido.feiraOrigemId = modelo.id;
+    pedido.entregadorId = entregadorId;
+    pedido.status = OrderStatus.ACCEPTED;
+    pedido.aceitoEm = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     return pedido;
   }
 
@@ -328,6 +360,15 @@ public class Pedido {
 
   public Instant getFeiraEncerradoEm() {
     return feiraEncerradoEm;
+  }
+
+  public UUID getFeiraOrigemId() {
+    return feiraOrigemId;
+  }
+
+  /** Modelo publicado pelo admin: tem estoque e gera instâncias. */
+  public boolean isFeiraModelo() {
+    return isFeira() && feiraOrigemId == null;
   }
 
   public boolean isFeiraCapturavel() {

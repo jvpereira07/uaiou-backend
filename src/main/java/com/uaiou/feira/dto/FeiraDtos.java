@@ -52,17 +52,28 @@ public final class FeiraDtos {
       boolean encerrado,
       boolean capturado) {}
 
-  /** Resposta da captura: a tela que o visitante mostra no balcão. */
+  /**
+   * Resposta da captura. {@code pedidoId} é o modelo; {@code pedidoGeradoId} é o pedido do jogador,
+   * e é ele que o app abre para executar a entrega.
+   */
   public record CapturaResponse(
-      UUID id, UUID pedidoId, String recompensa, Instant capturadoEm, Instant entregueEm) {}
+      UUID id,
+      UUID pedidoId,
+      UUID pedidoGeradoId,
+      String recompensa,
+      Instant capturadoEm,
+      Instant entregueEm) {}
 
-  /** Visão do operador: quem pegou o quê e se já retirou. */
+  /** Visão do operador: quem pegou o quê, em que ponto do fluxo está e se já retirou. */
   public record CapturaAdminResponse(
       UUID id,
       UUID pedidoId,
+      UUID pedidoGeradoId,
       UUID jogadorId,
       String jogadorNome,
       String jogadorUsername,
+      String situacao,
+      boolean aguardandoColeta,
       Instant capturadoEm,
       Instant entregueEm) {}
 

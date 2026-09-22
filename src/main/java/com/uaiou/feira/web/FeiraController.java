@@ -83,6 +83,17 @@ public class FeiraController {
     return orderService.capturar(pedidoId, user.userId());
   }
 
+  /**
+   * Finalização no ponto (docs/feira/01-fluxos.md). Sem código: quem chega entrega. O pedido aqui é
+   * o do jogador (a instância criada na captura), não o modelo publicado pelo admin.
+   */
+  @PostMapping("/pedidos/{pedidoId}/finalizacao")
+  public CapturaResponse finalizar(@PathVariable UUID pedidoId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireJogador(user);
+    return orderService.finalizar(pedidoId, user.userId());
+  }
+
   @GetMapping("/capturas")
   public List<CapturaResponse> minhasCapturas() {
     AuthenticatedUser user = currentUserHolder.require();

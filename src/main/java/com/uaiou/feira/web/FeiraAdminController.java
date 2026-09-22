@@ -57,7 +57,19 @@ public class FeiraAdminController {
     return orderService.capturasDoPedido(pedidoId);
   }
 
-  /** Balcão: o visitante mostra a tela, o operador confirma que passou o Bis. */
+  /**
+   * Coleta no estande: o jogador aceitou o pedido e veio buscar. É este clique que o libera para ir
+   * até o ponto de entrega — o equivalente ao estabelecimento confirmando a coleta no produto.
+   */
+  @PostMapping("/capturas/{capturaId}/coleta")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void confirmarColeta(@PathVariable UUID capturaId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    orderService.confirmarColeta(capturaId);
+  }
+
+  /** Balcão: o visitante entregou no ponto e voltou; o operador confirma que passou o Bis. */
   @PostMapping("/capturas/{capturaId}/entrega")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void entregar(@PathVariable UUID capturaId) {
