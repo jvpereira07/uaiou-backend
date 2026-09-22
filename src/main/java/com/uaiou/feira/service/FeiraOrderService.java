@@ -109,11 +109,15 @@ public class FeiraOrderService {
   /**
    * O número do pedido é único por estabelecimento (uk_pedido_numero_por_estabelecimento). O
    * produto serializa uma sequência por loja sob trava; aqui todos os pedidos são da mesma loja e
-   * não há nota nenhuma para casar, então derivar do próprio id evita a trava e não colide na
-   * prática.
+   * não há nota fiscal para casar, então derivar do próprio id evita a trava.
+   *
+   * <p>Vem do FIM do UUID, não do começo: em UUID v7 os primeiros dígitos são o relógio, e os 8
+   * primeiros só mudam a cada ~65 s — todo pedido criado dentro da mesma janela saía com o mesmo
+   * número e batia na unique. A cauda é a parte aleatória.
    */
   private String numeroDe(UUID id) {
-    return "F-" + id.toString().substring(0, 8);
+    String semTracos = id.toString().replace("-", "");
+    return "F-" + semTracos.substring(semTracos.length() - 12);
   }
 
   @Transactional(readOnly = true)
@@ -174,8 +178,14 @@ public class FeiraOrderService {
       pedidoRepository.saveAndFlush(instancia);
       capturaRepository.saveAndFlush(captura);
     } catch (DataIntegrityViolationException e) {
-      // ux_feira_captura: a regra "uma vez por pessoa" é do banco, não da aplicação.
-      throw new ConflictException("JA_CAPTURADO", "Você já pegou este pedido.");
+      // ux_feira_captura: a regra "uma vez por pessoa" é do banco, não da aplicação. Mas só essa
+      // violação vira "já capturado": traduzir qualquer falha de integridade nessa mensagem já
+      // escondeu uma colisão de número de pedido, que parecia ao jogador uma captura repetida
+      // enquanto o defeito real estava em outro lugar.
+      if (capturaRepository.existsByPedidoIdAndEntregadorId(modeloId, jogadorId)) {
+        throw new ConflictException("JA_CAPTURADO", "Você já pegou este pedido.");
+      }
+      throw e;
     }
 
     modelo.capturarNaFeira();
