@@ -405,6 +405,7 @@ public class OrderService {
         pedido.getAceitoEm(),
         pedido.getChegouEm(),
         pedido.getColetadoEm(),
+        pedido.getFeiraRecompensa(),
         links);
   }
 
@@ -416,7 +417,9 @@ public class OrderService {
     return new OrderSummary.MerchantRef(
         estabelecimento.getUsuarioId(),
         estabelecimento.getNomeFantasia(),
-        uploadService.urlDeImagem(estabelecimento.getLogoObjectKey()));
+        uploadService.urlDeImagem(estabelecimento.getLogoObjectKey()),
+        estabelecimento.getLat(),
+        estabelecimento.getLongitude());
   }
 
   private Usuario requireUsuario(UUID usuarioId) {
