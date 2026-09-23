@@ -13,6 +13,12 @@ public enum WithdrawalReason {
    */
   PICKUP_DELAY("pickup_delay"),
   PERSONAL("personal"),
+  // Modo feira (docs/feira/): num salão não há veículo, acidente nem loja atrasando. Estes são os
+  // motivos que fazem sentido para quem pegou um prêmio e desistiu de levá-lo ao ponto.
+  NO_TIME("no_time"),
+  CANT_FIND_SPOT("cant_find_spot"),
+  STAND_QUEUE("stand_queue"),
+  WRONG_PICK("wrong_pick"),
   OTHER("other");
 
   private final String code;

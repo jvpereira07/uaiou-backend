@@ -1,6 +1,7 @@
 package com.uaiou.orders.service;
 
 import com.uaiou.delivery.repository.OtpRepository;
+import com.uaiou.feira.service.FeiraOrderService;
 import com.uaiou.orders.OrderLifecycleEvents;
 import com.uaiou.orders.OrderPublishedEvent;
 import com.uaiou.orders.WithdrawalReason;
@@ -31,12 +32,20 @@ public class WithdrawalService {
   private final PickupProperties properties;
   private final ApplicationEventPublisher events;
 
+  /**
+   * Modo feira (docs/feira/). Mesma inversão aceita do {@link AssignmentService}: a desistência de
+   * um pedido da feira tem de devolver o prêmio ao estoque, e só o módulo da feira sabe fazer isso.
+   */
+  private final FeiraOrderService feira;
+
   public WithdrawalService(
       PedidoRepository pedidoRepository,
       DesistenciaPedidoRepository desistenciaRepository,
       OtpRepository otpRepository,
       PickupProperties properties,
-      ApplicationEventPublisher events) {
+      ApplicationEventPublisher events,
+      FeiraOrderService feira) {
+    this.feira = feira;
     this.pedidoRepository = pedidoRepository;
     this.desistenciaRepository = desistenciaRepository;
     this.otpRepository = otpRepository;
@@ -77,9 +86,20 @@ public class WithdrawalService {
             nota,
             pedido.getAceitoEm(),
             pedido.getChegouEm(),
-            contaPenalidade(request.reason(), pedido.getChegouEm())));
+            // Na feira desistir é parte do jogo: não pesa no score nem no limite diário.
+            !pedido.isFeira() && contaPenalidade(request.reason(), pedido.getChegouEm())));
 
     otpRepository.deleteByPedidoId(pedidoId);
+
+    // Modo feira: o pedido é do jogador, não da vitrine. Devolvê-lo a "publicado" o deixava órfão
+    // e o prêmio continuava contado como pego; aqui ele é cancelado e o prêmio volta ao estoque.
+    if (pedido.isFeira()) {
+      feira.devolverPorDesistencia(pedido, nota);
+      events.publishEvent(
+          new OrderLifecycleEvents.CourierWithdrew(pedidoId, entregadorId, request.reason()));
+      return PickupService.toResponse(pedido, null);
+    }
+
     pedido.desfazerAceite();
 
     events.publishEvent(

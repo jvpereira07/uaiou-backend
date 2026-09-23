@@ -390,6 +390,22 @@ public class Pedido {
     }
   }
 
+  /**
+   * Desistência do jogador: a unidade volta para a mesa. Mesma trava de {@link #capturarNaFeira()}.
+   *
+   * <p>Se o pedido estava encerrado por ter esgotado, reabre — foi o estoque zerado que o encerrou,
+   * e agora ele existe de novo. Não dá para distinguir de um encerramento manual feito com o
+   * estoque já zerado, mas os dois significam "acabou", e o prêmio devolvido desfaz exatamente
+   * isso.
+   */
+  public void devolverCapturaNaFeira() {
+    boolean esgotado = getFeiraRestantes() == 0;
+    feiraCapturas = Math.max(0, feiraCapturas - 1);
+    if (esgotado) {
+      feiraEncerradoEm = null;
+    }
+  }
+
   /** Encerramento manual pelo operador: para de aceitar capturas, não desfaz as já feitas. */
   public void encerrarNaFeira() {
     if (feiraEncerradoEm == null) {

@@ -6,6 +6,7 @@ import com.uaiou.feira.config.FeiraProperties;
 import com.uaiou.feira.dto.FeiraDtos.CapturaResponse;
 import com.uaiou.feira.dto.FeiraDtos.EntrarRequest;
 import com.uaiou.feira.dto.FeiraDtos.EntrarResponse;
+import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoResponse;
 import com.uaiou.feira.service.FeiraGuard;
 import com.uaiou.feira.service.FeiraOrderService;
@@ -66,6 +67,17 @@ public class FeiraController {
   public EntrarResponse entrar(@Valid @RequestBody EntrarRequest request) {
     guard.requireEnabled();
     return playerService.entrar(request);
+  }
+
+  /**
+   * Onde fica o estande, com a descrição escrita pelo operador. O jogador precisa dela na coleta:
+   * num salão o pino sozinho não acha a mesa.
+   */
+  @GetMapping("/estande")
+  public EstandeResponse estande() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireJogador(user);
+    return orderService.estande();
   }
 
   @GetMapping("/pedidos")

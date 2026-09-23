@@ -40,6 +40,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FeiraOrderService {
 
+  /** Cabe em cancelamento_motivo (varchar 30) e separa estes cancelamentos dos do produto. */
+  private static final String MOTIVO_DESISTENCIA = "feira_desistencia";
+
   private final PedidoRepository pedidoRepository;
   private final FeiraCapturaRepository capturaRepository;
   private final EntregadorRepository entregadorRepository;
@@ -376,6 +379,25 @@ public class FeiraOrderService {
                 () -> new NotFoundException("CAPTURA_NOT_FOUND", "Captura não encontrada."));
     captura.marcarEntregue();
     capturaRepository.save(captura);
+  }
+
+  /**
+   * O jogador desistiu antes de coletar: a captura deixa de existir e o prêmio volta à mesa.
+   *
+   * <p>A instância é cancelada, não devolvida à vitrine como no produto: ela é do jogador, e
+   * publicada de novo viraria um pedido órfão. Apagar a captura libera a regra "uma vez por pessoa"
+   * — quem desistiu pode tentar de novo, como qualquer um. Chamado dentro da transação da
+   * desistência, com a instância já travada.
+   */
+  @Transactional
+  public void devolverPorDesistencia(Pedido instancia, String nota) {
+    instancia.cancelar(MOTIVO_DESISTENCIA, nota);
+    capturaRepository.findByPedidoGeradoId(instancia.getId()).ifPresent(capturaRepository::delete);
+
+    UUID modeloId = instancia.getFeiraOrigemId();
+    if (modeloId != null) {
+      pedidoRepository.findByIdForUpdate(modeloId).ifPresent(Pedido::devolverCapturaNaFeira);
+    }
   }
 
   @Transactional
