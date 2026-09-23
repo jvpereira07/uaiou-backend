@@ -43,6 +43,9 @@ public class FeiraOrderService {
   /** Cabe em cancelamento_motivo (varchar 30) e separa estes cancelamentos dos do produto. */
   private static final String MOTIVO_DESISTENCIA = "feira_desistencia";
 
+  /** Cancelamento feito pelo operador ao descartar a captura no balcão. */
+  private static final String MOTIVO_DESCARTE = "feira_descarte";
+
   private final PedidoRepository pedidoRepository;
   private final FeiraCapturaRepository capturaRepository;
   private final EntregadorRepository entregadorRepository;
@@ -261,10 +264,13 @@ public class FeiraOrderService {
                   captura.getEntregadorId(),
                   jogador == null ? null : jogador.getUsuario().getNomeExibicao(),
                   jogador == null ? null : jogador.getUsername(),
-                  situacaoDe(gerado),
-                  gerado != null && gerado.getStatus() == OrderStatus.ACCEPTED,
+                  captura.getDescartadaEm() != null ? "descartada" : situacaoDe(gerado),
+                  captura.getDescartadaEm() == null
+                      && gerado != null
+                      && gerado.getStatus() == OrderStatus.ACCEPTED,
                   captura.getCriadoEm(),
-                  captura.getEntregueEm());
+                  captura.getEntregueEm(),
+                  captura.getDescartadaEm());
             })
         .toList();
   }
@@ -383,6 +389,33 @@ public class FeiraOrderService {
                 () -> new NotFoundException("CAPTURA_NOT_FOUND", "Captura não encontrada."));
     captura.marcarEntregue();
     capturaRepository.save(captura);
+  }
+
+  /**
+   * O operador tira a captura do balcão: teste, jogador que sumiu, pedido que ficou pendurado. Se o
+   * pedido do jogador ainda está em andamento, ele é cancelado junto — senão o app continuaria
+   * mandando a pessoa ao ponto de uma entrega que ninguém vai validar. O estoque não volta: quem
+   * decide repor a mesa é o operador, e descartar não é desistir.
+   */
+  @Transactional
+  public void descartar(UUID capturaId) {
+    FeiraCaptura captura =
+        capturaRepository
+            .findById(capturaId)
+            .orElseThrow(
+                () -> new NotFoundException("CAPTURA_NOT_FOUND", "Captura não encontrada."));
+    captura.descartar();
+
+    UUID geradoId = captura.getPedidoGeradoId();
+    if (geradoId != null) {
+      pedidoRepository
+          .findByIdForUpdate(geradoId)
+          .filter(
+              pedido ->
+                  pedido.getStatus() == OrderStatus.ACCEPTED
+                      || pedido.getStatus() == OrderStatus.PICKED_UP)
+          .ifPresent(pedido -> pedido.cancelar(MOTIVO_DESCARTE, null));
+    }
   }
 
   /**

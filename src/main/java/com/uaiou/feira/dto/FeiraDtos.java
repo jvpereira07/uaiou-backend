@@ -75,7 +75,9 @@ public final class FeiraDtos {
       String situacao,
       boolean aguardandoColeta,
       Instant capturadoEm,
-      Instant entregueEm) {}
+      Instant entregueEm,
+      /** V31 — não-nulo = tirada do balcão pelo operador. */
+      Instant descartadaEm) {}
 
   /**
    * Ponto do estande UaiOu. É de lá que o jogador retira, então ele precisa aparecer no mapa do app

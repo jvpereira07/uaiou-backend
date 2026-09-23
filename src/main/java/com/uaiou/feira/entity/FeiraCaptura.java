@@ -40,6 +40,10 @@ public class FeiraCaptura {
   @Column(name = "pedido_gerado_id")
   private UUID pedidoGeradoId;
 
+  /** V31 — não-nulo = o operador tirou esta captura do balcão. */
+  @Column(name = "descartada_em")
+  private Instant descartadaEm;
+
   protected FeiraCaptura() {
     // exigido pela JPA
   }
@@ -73,6 +77,17 @@ public class FeiraCaptura {
 
   public UUID getPedidoGeradoId() {
     return pedidoGeradoId;
+  }
+
+  public Instant getDescartadaEm() {
+    return descartadaEm;
+  }
+
+  /** Idempotente, como {@link #marcarEntregue()}. */
+  public void descartar() {
+    if (descartadaEm == null) {
+      descartadaEm = Instant.now();
+    }
   }
 
   /** Idempotente: o operador clicar duas vezes não reescreve a hora da entrega. */

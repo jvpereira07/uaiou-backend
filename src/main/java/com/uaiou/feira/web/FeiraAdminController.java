@@ -96,6 +96,15 @@ public class FeiraAdminController {
     orderService.marcarEntregue(capturaId);
   }
 
+  /** Tira a captura do balcão (teste, jogador que sumiu) e cancela o pedido dele se ainda anda. */
+  @PostMapping("/capturas/{capturaId}/descarte")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void descartar(@PathVariable UUID capturaId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    orderService.descartar(capturaId);
+  }
+
   @PostMapping("/pedidos/{pedidoId}/encerramento")
   public PedidoAdminResponse encerrar(@PathVariable UUID pedidoId) {
     AuthenticatedUser user = currentUserHolder.require();
