@@ -14,7 +14,12 @@ public record PendingRegistrationSummary(
     String displayName,
     String email,
     Instant registeredAt,
-    List<DocumentReviewItem> documents) {
+    List<DocumentReviewItem> documents,
+    /**
+     * Exigidos pelo papel e ainda não enviados. Vazio = pronto para aprovar; não-vazio = o admin vê
+     * o cadastro, mas só pode rejeitar ou esperar.
+     */
+    List<Purpose> missingDocuments) {
 
   public record DocumentReviewItem(
       UUID documentId, Purpose type, DocumentApprovalStatus status, String fileUrl) {}
