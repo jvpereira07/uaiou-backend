@@ -22,7 +22,7 @@ public class FeiraGuard {
 
   public void requireEnabled() {
     if (!properties.enabled()) {
-      throw new NotFoundException("FEIRA_DISABLED", "Modo feira não está habilitado.");
+      throw new NotFoundException("FEIRA_DISABLED", "Modo Fetin não está habilitado.");
     }
   }
 

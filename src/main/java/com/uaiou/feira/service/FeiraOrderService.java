@@ -72,15 +72,20 @@ public class FeiraOrderService {
    */
   @Transactional(readOnly = true)
   public EstandeResponse estande() {
-    Estabelecimento uaiou = estandeUaiOu();
-    return new EstandeResponse(uaiou.getLat(), uaiou.getLongitude());
+    return toEstande(estandeUaiOu());
   }
 
   @Transactional
   public EstandeResponse moverEstande(EstandeRequest request) {
     Estabelecimento uaiou = estandeUaiOu();
     uaiou.atualizarEndereco(null, null, null, null, null, request.lat(), request.longitude());
-    return new EstandeResponse(uaiou.getLat(), uaiou.getLongitude());
+    uaiou.descreverLocalDaFeira(request.descricao());
+    return toEstande(uaiou);
+  }
+
+  private static EstandeResponse toEstande(Estabelecimento uaiou) {
+    return new EstandeResponse(
+        uaiou.getLat(), uaiou.getLongitude(), uaiou.getFeiraDescricaoLocal());
   }
 
   private Estabelecimento estandeUaiOu() {
@@ -100,7 +105,7 @@ public class FeiraOrderService {
             properties.estabelecimentoId(),
             request.lat(),
             request.longitude(),
-            request.rotulo(),
+            request.rotulo().trim(),
             request.recompensa().trim(),
             request.limite());
     return toAdmin(pedidoRepository.saveAndFlush(pedido));

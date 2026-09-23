@@ -34,7 +34,7 @@ public final class FeiraDtos {
   public record CriarPedidoRequest(
       @NotNull @DecimalMin("-90") @DecimalMax("90") BigDecimal lat,
       @NotNull @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude,
-      @Size(max = 80) String rotulo,
+      @NotBlank @Size(max = 80) String rotulo,
       @NotBlank @Size(max = 60) String recompensa,
       @NotNull @Min(1) @Max(999) Integer limite) {}
 
@@ -83,9 +83,11 @@ public final class FeiraDtos {
    */
   public record EstandeRequest(
       @NotNull @DecimalMin("-90") @DecimalMax("90") BigDecimal lat,
-      @NotNull @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude) {}
+      @NotNull @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude,
+      @Size(max = 200) String descricao) {}
 
-  public record EstandeResponse(BigDecimal lat, BigDecimal longitude) {}
+  /** {@code descricao} complementa o pino: num salão, o mapa sozinho não acha a mesa. */
+  public record EstandeResponse(BigDecimal lat, BigDecimal longitude, String descricao) {}
 
   /** Visão do operador sobre o pedido, com o estoque à vista. */
   public record PedidoAdminResponse(

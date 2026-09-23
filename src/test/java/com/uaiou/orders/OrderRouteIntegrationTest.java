@@ -183,7 +183,9 @@ class OrderRouteIntegrationTest extends AbstractAuthIntegrationTest {
     assertThat(response.getBody().error().code()).isEqualTo("ORDER_NOT_VISIBLE");
   }
 
-  /** A leitura de GPS enviada na consulta vence a posição salva: recalcular parte de onde ele está. */
+  /**
+   * A leitura de GPS enviada na consulta vence a posição salva: recalcular parte de onde ele está.
+   */
   @Test
   void theDevicePositionSentInTheRequestIsTheRouteOrigin() {
     RegisteredTestUser merchant = merchantComCoordenada();

@@ -58,6 +58,10 @@ public class Estabelecimento {
   @Column(name = "score_calculado_em")
   private Instant scoreCalculadoEm;
 
+  /** Modo feira: onde fica a mesa em palavras ("ao lado da entrada do bloco B"). */
+  @Column(name = "feira_descricao_local")
+  private String feiraDescricaoLocal;
+
   protected Estabelecimento() {
     // exigido pela JPA
   }
@@ -110,6 +114,15 @@ public class Estabelecimento {
 
   public BigDecimal getLongitude() {
     return longitude;
+  }
+
+  public String getFeiraDescricaoLocal() {
+    return feiraDescricaoLocal;
+  }
+
+  /** Substitui a descrição inteira: vazio apaga, porque o painel sempre manda o texto completo. */
+  public void descreverLocalDaFeira(String descricao) {
+    this.feiraDescricaoLocal = descricao == null || descricao.isBlank() ? null : descricao.strip();
   }
 
   public BigDecimal getScore() {
