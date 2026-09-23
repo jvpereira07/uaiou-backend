@@ -37,13 +37,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 class RegistrationReviewIntegrationTest extends AbstractAuthIntegrationTest {
 
   @Test
-  void freshlyRegisteredCourierIsNotInTheQueueYet() {
+  void freshlyRegisteredCourierAppearsInTheQueueWithItsMissingDocuments() {
     AdminSession admin = loginAdmin();
     RegisteredTestUser courier = registerCourier();
 
     PageResponse<PendingRegistrationSummary> queue = getQueue(admin.accessToken());
 
-    assertThat(queue.data()).noneMatch(r -> r.userId().equals(courier.id()));
+    PendingRegistrationSummary entry =
+        queue.data().stream()
+            .filter(r -> r.userId().equals(courier.id()))
+            .findFirst()
+            .orElseThrow();
+    assertThat(entry.documents()).isEmpty();
+    assertThat(entry.missingDocuments()).hasSize(3);
   }
 
   @Test
@@ -61,6 +67,7 @@ class RegistrationReviewIntegrationTest extends AbstractAuthIntegrationTest {
             .findFirst()
             .orElseThrow();
     assertThat(entry.documents()).hasSize(3);
+    assertThat(entry.missingDocuments()).isEmpty();
     assertThat(entry.documents()).allSatisfy(doc -> assertThat(doc.fileUrl()).isNotBlank());
   }
 

@@ -12,6 +12,7 @@ import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.shared.pagination.PageResponse;
 import com.uaiou.shared.pagination.Paginator;
 import com.uaiou.shared.pagination.PagingRequest;
+import com.uaiou.uploads.Purpose;
 import com.uaiou.uploads.service.UploadService;
 import com.uaiou.users.DocumentApprovalStatus;
 import com.uaiou.users.UserStatus;
@@ -22,7 +23,9 @@ import com.uaiou.users.repository.UsuarioRepository;
 import com.uaiou.users.service.DocumentoCadastroService;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,17 +56,17 @@ public class RegistrationReviewService {
   }
 
   /**
-   * RF-07.3: só entra na fila quem já enviou todos os documentos exigidos pelo papel — um cadastro
-   * {@code pendente} recém-criado, sem nenhum documento ainda, não tem o que o admin revisar
-   * (critério de aceite 4 de T-06). Paginado em memória: volume esperado de v1 não justifica uma
-   * query com join dinâmico contra o CTI + documentos por papel.
+   * RF-07.3: todo cadastro {@code pendente} entra na fila, inclusive os que ainda não enviaram
+   * todos os documentos — cada linha diz o que falta. Filtrar os incompletos escondia o cadastro
+   * sem explicação nenhuma, e o admin não tinha como saber que ele existia. Aprovar continua
+   * exigindo todos os documentos (ver {@link #review}). Paginado em memória: volume esperado de v1
+   * não justifica uma query com join dinâmico contra o CTI + documentos por papel.
    */
   @Transactional(readOnly = true)
   public PageResponse<PendingRegistrationSummary> queue(
       UUID adminId, PagingRequest paging, String baseUri) {
     List<PendingRegistrationSummary> ready =
         usuarioRepository.findByStatus(UserStatus.PENDING).stream()
-            .filter(documentoCadastroService::hasAllRequiredDocumentsSubmitted)
             .map(usuario -> toSummary(adminId, usuario))
             .toList();
 
@@ -130,12 +133,17 @@ public class RegistrationReviewService {
   }
 
   private PendingRegistrationSummary toSummary(UUID adminId, Usuario usuario) {
+    List<DocumentoCadastro> current =
+        documentoCadastroRepository.findByUsuarioIdAndStatusAprovacaoNot(
+            usuario.getId(), DocumentApprovalStatus.SUPERSEDED);
     List<PendingRegistrationSummary.DocumentReviewItem> documents =
-        documentoCadastroRepository
-            .findByUsuarioIdAndStatusAprovacaoNot(
-                usuario.getId(), DocumentApprovalStatus.SUPERSEDED)
-            .stream()
-            .map(doc -> toReviewItem(adminId, doc))
+        current.stream().map(doc -> toReviewItem(adminId, doc)).toList();
+    Set<Purpose> submitted =
+        current.stream().map(DocumentoCadastro::getTipo).collect(Collectors.toSet());
+    List<Purpose> missing =
+        documentoCadastroService.requiredTypesFor(usuario).stream()
+            .filter(type -> !submitted.contains(type))
+            .sorted()
             .toList();
     return new PendingRegistrationSummary(
         usuario.getId(),
@@ -143,7 +151,8 @@ public class RegistrationReviewService {
         usuario.getNomeExibicao(),
         usuario.getEmail(),
         usuario.getCriadoEm(),
-        documents);
+        documents,
+        missing);
   }
 
   private PendingRegistrationSummary.DocumentReviewItem toReviewItem(
