@@ -130,7 +130,11 @@ public class FeiraOrderService {
 
   @Transactional(readOnly = true)
   public List<PedidoAdminResponse> listarParaAdmin() {
+    // Só os modelos: cada captura gera uma instância com a mesma recompensa e o mesmo ponto, e
+    // listá-las fazia o painel mostrar o prêmio em dobro — abrindo a cópia, "ninguém pegou ainda".
+    // As instâncias aparecem no painel pelas capturas do modelo.
     return pedidoRepository.findByFeiraRecompensaIsNotNullOrderByCriadoEmDesc().stream()
+        .filter(Pedido::isFeiraModelo)
         .map(this::toAdmin)
         .toList();
   }
