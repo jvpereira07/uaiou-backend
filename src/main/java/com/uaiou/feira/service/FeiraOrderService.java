@@ -346,16 +346,13 @@ public class FeiraOrderService {
             .findById(jogadorId)
             .orElseThrow(
                 () -> new NotFoundException("JOGADOR_NOT_FOUND", "Jogador não encontrado."));
-    // V33: com código definido, ele é a prova de presença — quem leu no ponto esteve lá, e GPS
-    // dentro de pavilhão erra demais para ser exigido junto. Pedidos antigos seguem no geofence.
-    String esperado = pedido.getFeiraCodigo();
-    if (esperado != null) {
-      if (codigo == null || !esperado.equals(codigo.trim())) {
-        throw new ConflictException("CODIGO_INVALIDO", "Código incorreto. Confira no ponto.");
-      }
-    } else if (!geofenceEvaluator.dentroDoRaio(
-        jogador.getLat(), jogador.getLongitude(), pedido)) {
+    if (!geofenceEvaluator.dentroDoRaio(jogador.getLat(), jogador.getLongitude(), pedido)) {
       throw new ConflictException("FORA_DO_PONTO", "Chegue mais perto do ponto para finalizar.");
+    }
+    // V33: além do raio, o código escrito no ponto. Pedidos antigos, sem código, só o raio.
+    String esperado = pedido.getFeiraCodigo();
+    if (esperado != null && (codigo == null || !esperado.equals(codigo.trim()))) {
+      throw new ConflictException("CODIGO_INVALIDO", "Código incorreto. Confira no ponto.");
     }
 
     pedido.finalizar();
