@@ -27,19 +27,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeiraRankingService {
 
   /** Pontos de uma entrega feita em até {@link #TEMPO_REFERENCIA_SEGUNDOS}. */
-  static final int PONTOS_MAXIMOS = 1000;
+  static final double PONTOS_MAXIMOS = 100;
 
   /** Até aqui a entrega vale o máximo: 3 minutos é o ritmo realista de quem vai direto ao ponto. */
   static final long TEMPO_REFERENCIA_SEGUNDOS = 180;
 
-  /**
-   * Depois da referência, cada segundo custa um ponto: queda linear e fina, em que poucos segundos
-   * de diferença já separam dois jogadores no placar.
-   */
-  static final int PONTOS_POR_SEGUNDO = 1;
-
   /** Toda entrega concluída vale alguma coisa, por mais demorada que seja. */
-  static final int PONTOS_MINIMOS = 100;
+  static final double PONTOS_MINIMOS = 10;
 
   private static final List<OrderStatus> CONCLUIDAS =
       List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
@@ -54,13 +48,14 @@ public class FeiraRankingService {
   }
 
   /**
-   * Pontos de uma entrega: 1000 em até 3 min, e daí em diante menos 1 por segundo — 5 min valem
-   * 880, 10 min valem 580, 15 min valem 280 —, nunca abaixo de 100 (a partir de 18 min).
+   * Pontos de uma entrega: 100 em até 3 min, e daí em diante proporcional ao inverso do tempo — 6
+   * min valem 50, 12 min valem 25 —, nunca abaixo de 10. Com duas casas decimais: a curva é a
+   * mesma, mas cada segundo a mais já tira um pouco, em vez de a nota andar em degraus inteiros.
    */
-  static int pontosPara(long segundos) {
-    long excedente = Math.max(0, segundos - TEMPO_REFERENCIA_SEGUNDOS);
-    long pontos = PONTOS_MAXIMOS - Math.min(excedente, Integer.MAX_VALUE) * PONTOS_POR_SEGUNDO;
-    return (int) Math.max(PONTOS_MINIMOS, pontos);
+  static double pontosPara(long segundos) {
+    long tempo = Math.max(segundos, TEMPO_REFERENCIA_SEGUNDOS);
+    double pontos = PONTOS_MAXIMOS * TEMPO_REFERENCIA_SEGUNDOS / tempo;
+    return Math.max(PONTOS_MINIMOS, Math.round(pontos * 100) / 100.0);
   }
 
   /**
@@ -86,12 +81,14 @@ public class FeiraRankingService {
         entregadorRepository.findAllById(porJogador.keySet()).stream()
             .collect(Collectors.toMap(Entregador::getUsuarioId, Function.identity()));
 
-    record Linha(UUID jogadorId, int pontos, int entregas, long melhor, long medio) {}
+    record Linha(UUID jogadorId, double pontos, int entregas, long melhor, long medio) {}
     List<Linha> linhas = new ArrayList<>();
     porJogador.forEach(
         (jogadorId, entregas) -> {
           List<Long> tempos = entregas.stream().map(FeiraRankingService::segundosDe).toList();
-          int pontos = tempos.stream().mapToInt(FeiraRankingService::pontosPara).sum();
+          double pontos =
+              Math.round(tempos.stream().mapToDouble(FeiraRankingService::pontosPara).sum() * 100)
+                  / 100.0;
           List<Long> validos = tempos.stream().filter(t -> t != Long.MAX_VALUE).toList();
           long melhor = validos.stream().mapToLong(Long::longValue).min().orElse(0);
           long medio = Math.round(validos.stream().mapToLong(Long::longValue).average().orElse(0));
@@ -100,7 +97,7 @@ public class FeiraRankingService {
 
     // Empate em pontos: quem tem o melhor tempo fica na frente.
     linhas.sort(
-        Comparator.comparingInt(Linha::pontos).reversed().thenComparingLong(Linha::melhor));
+        Comparator.comparingDouble(Linha::pontos).reversed().thenComparingLong(Linha::melhor));
 
     List<RankingResponse> resposta = new ArrayList<>();
     for (int i = 0; i < linhas.size(); i++) {

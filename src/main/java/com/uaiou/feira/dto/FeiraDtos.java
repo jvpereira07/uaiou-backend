@@ -122,7 +122,7 @@ public final class FeiraDtos {
       UUID jogadorId,
       String jogadorNome,
       String jogadorUsername,
-      int pontos,
+      double pontos,
       int entregas,
       long melhorTempoSegundos,
       long tempoMedioSegundos) {}
