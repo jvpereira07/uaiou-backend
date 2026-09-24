@@ -9,6 +9,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param weightsVersion identificador gravado junto de cada score calculado.
  * @param inactiveReviewWeight peso de uma avaliação {@code ativa = false} (padrão positivo, T-19)
  *     na média — menor que 1.0, nunca zero: RF-20 critério 5 pede "peso reduzido", não ausência.
+ * @param courierPinnedMax trava o score de todo entregador no máximo (5). Só para demonstração
+ *     (feira): quem testa o app não pode ficar travado por score baixo de testes anteriores.
  */
 @ConfigurationProperties(prefix = "app.score")
-public record ScoreProperties(String weightsVersion, double inactiveReviewWeight) {}
+public record ScoreProperties(
+    String weightsVersion, double inactiveReviewWeight, boolean courierPinnedMax) {}
