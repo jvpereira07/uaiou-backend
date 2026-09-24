@@ -97,6 +97,9 @@ public class OrderEligibilityService {
                 caixa.longMax(),
                 entregadorId)
             .stream()
+            // Modo feira (docs/feira/): encerrar ou esgotar não muda o status do modelo, que segue
+            // PUBLISHED; sem este corte o pedido encerrado continuava na vitrine do app.
+            .filter(pedido -> !pedido.isFeira() || pedido.isFeiraCapturavel())
             .map(
                 pedido ->
                     new PedidoElegivel(
