@@ -29,8 +29,8 @@ public class FeiraRankingService {
   /** Pontos de uma entrega feita em até {@link #TEMPO_REFERENCIA_SEGUNDOS}. */
   static final int PONTOS_MAXIMOS = 100;
 
-  /** Abaixo disso o tempo não rende mais pontos: 1 minuto é "o mais rápido possível". */
-  static final long TEMPO_REFERENCIA_SEGUNDOS = 60;
+  /** Até aqui a entrega vale o máximo: 3 minutos é o ritmo realista de quem vai direto ao ponto. */
+  static final long TEMPO_REFERENCIA_SEGUNDOS = 180;
 
   /** Toda entrega concluída vale alguma coisa, por mais demorada que seja. */
   static final int PONTOS_MINIMOS = 10;
@@ -48,8 +48,8 @@ public class FeiraRankingService {
   }
 
   /**
-   * Pontos de uma entrega: 100 em até 1 min, e daí em diante proporcional ao inverso do tempo — 2
-   * min valem 50, 4 min valem 25 —, nunca abaixo de 10.
+   * Pontos de uma entrega: 100 em até 3 min, e daí em diante proporcional ao inverso do tempo — 6
+   * min valem 50, 12 min valem 25 —, nunca abaixo de 10.
    */
   static int pontosPara(long segundos) {
     long tempo = Math.max(segundos, TEMPO_REFERENCIA_SEGUNDOS);
