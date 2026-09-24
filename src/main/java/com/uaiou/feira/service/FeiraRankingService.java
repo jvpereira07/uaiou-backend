@@ -27,13 +27,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeiraRankingService {
 
   /** Pontos de uma entrega feita em até {@link #TEMPO_REFERENCIA_SEGUNDOS}. */
-  static final int PONTOS_MAXIMOS = 100;
+  static final int PONTOS_MAXIMOS = 1000;
 
   /** Até aqui a entrega vale o máximo: 3 minutos é o ritmo realista de quem vai direto ao ponto. */
   static final long TEMPO_REFERENCIA_SEGUNDOS = 180;
 
+  /**
+   * Depois da referência, cada segundo custa um ponto: queda linear e fina, em que poucos segundos
+   * de diferença já separam dois jogadores no placar.
+   */
+  static final int PONTOS_POR_SEGUNDO = 1;
+
   /** Toda entrega concluída vale alguma coisa, por mais demorada que seja. */
-  static final int PONTOS_MINIMOS = 10;
+  static final int PONTOS_MINIMOS = 100;
 
   private static final List<OrderStatus> CONCLUIDAS =
       List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
@@ -48,12 +54,12 @@ public class FeiraRankingService {
   }
 
   /**
-   * Pontos de uma entrega: 100 em até 3 min, e daí em diante proporcional ao inverso do tempo — 6
-   * min valem 50, 12 min valem 25 —, nunca abaixo de 10.
+   * Pontos de uma entrega: 1000 em até 3 min, e daí em diante menos 1 por segundo — 5 min valem
+   * 880, 10 min valem 580, 15 min valem 280 —, nunca abaixo de 100 (a partir de 18 min).
    */
   static int pontosPara(long segundos) {
-    long tempo = Math.max(segundos, TEMPO_REFERENCIA_SEGUNDOS);
-    long pontos = Math.round((double) PONTOS_MAXIMOS * TEMPO_REFERENCIA_SEGUNDOS / tempo);
+    long excedente = Math.max(0, segundos - TEMPO_REFERENCIA_SEGUNDOS);
+    long pontos = PONTOS_MAXIMOS - Math.min(excedente, Integer.MAX_VALUE) * PONTOS_POR_SEGUNDO;
     return (int) Math.max(PONTOS_MINIMOS, pontos);
   }
 
