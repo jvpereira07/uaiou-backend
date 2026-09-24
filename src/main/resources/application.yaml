@@ -201,3 +201,5 @@ app:
     weights-version: ${SCORE_WEIGHTS_VERSION:v1}
     # RF-19.6: avaliação automática (padrão positivo) pesa menos que uma opinião real.
     inactive-review-weight: ${SCORE_INACTIVE_REVIEW_WEIGHT:0.3}
+    # Feira: trava o score do entregador em 5. Nunca ligar em produção.
+    courier-pinned-max: ${SCORE_COURIER_PINNED_MAX:false}

@@ -43,6 +43,7 @@ public class ScoreCalculationService {
   private static final List<OrderStatus> FINALIZADOS =
       List.of(OrderStatus.FINALIZED, OrderStatus.CONTESTABLE_FINALIZED);
 
+  private static final BigDecimal SCORE_MAXIMO = new BigDecimal("5.00");
   private static final BigDecimal PESO_AVALIACAO = BigDecimal.valueOf(0.6);
   private static final BigDecimal PESO_CONCLUSAO = BigDecimal.valueOf(0.4);
   private static final BigDecimal PESO_TAXA_CONTINGENCIA = BigDecimal.valueOf(0.5);
@@ -114,6 +115,11 @@ public class ScoreCalculationService {
     componentes.add(new ScoreResponseComponent("taxa_conclusao", conclusaoValue, PESO_CONCLUSAO));
     componentes.add(new ScoreResponseComponent("contingencia_atribuivel", null, BigDecimal.ZERO));
 
+    if (properties.courierPinnedMax()) {
+      // Modo demonstração: os componentes continuam registrados, mas o número não cai.
+      persistir(componentes, (valor, json, em) -> entregador.atualizarScore(SCORE_MAXIMO, json, em));
+      return;
+    }
     persistir(componentes, entregador::atualizarScore);
   }
 
