@@ -10,8 +10,10 @@ import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
+import com.uaiou.feira.dto.FeiraDtos.RankingResponse;
 import com.uaiou.feira.service.FeiraBonusService;
 import com.uaiou.feira.service.FeiraGuard;
+import com.uaiou.feira.service.FeiraRankingService;
 import com.uaiou.feira.service.FeiraOrderService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -33,16 +35,19 @@ public class FeiraAdminController {
 
   private final FeiraOrderService orderService;
   private final FeiraBonusService bonusService;
+  private final FeiraRankingService rankingService;
   private final FeiraGuard guard;
   private final CurrentUserHolder currentUserHolder;
 
   public FeiraAdminController(
       FeiraOrderService orderService,
       FeiraBonusService bonusService,
+      FeiraRankingService rankingService,
       FeiraGuard guard,
       CurrentUserHolder currentUserHolder) {
     this.orderService = orderService;
     this.bonusService = bonusService;
+    this.rankingService = rankingService;
     this.guard = guard;
     this.currentUserHolder = currentUserHolder;
   }
@@ -119,6 +124,14 @@ public class FeiraAdminController {
     AuthenticatedUser user = currentUserHolder.require();
     guard.requireAdmin(user);
     return orderService.encerrar(pedidoId);
+  }
+
+  /** Placar: pontos por entrega concluída, mais pontos quanto mais rápida. */
+  @GetMapping("/ranking")
+  public List<RankingResponse> ranking() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return rankingService.ranking();
   }
 
   /** Bônus por meta (V32): "complete N entregas e ganhe X". */

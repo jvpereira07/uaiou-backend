@@ -41,6 +41,9 @@ public interface PedidoRepository
   /** Modo feira: o pedido-prêmio é identificado por ter recompensa em texto (V28__feira.sql). */
   List<Pedido> findByFeiraRecompensaIsNotNullOrderByCriadoEmDesc();
 
+  /** Modo feira: instâncias de jogador (têm origem) num dos status dados — base do ranking. */
+  List<Pedido> findByFeiraOrigemIdIsNotNullAndStatusIn(List<OrderStatus> status);
+
   /**
    * Modo feira: entregas concluídas por um jogador — as instâncias dele (têm origem) já
    * finalizadas. É o contador dos bônus por meta (V32).

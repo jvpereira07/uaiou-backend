@@ -113,6 +113,20 @@ public final class FeiraDtos {
       /** V33 — só o operador vê; é o que ele deixa escrito no ponto. */
       String codigo) {}
 
+  /**
+   * Linha do ranking: pontos somados das entregas concluídas. Tempos em segundos, da liberação no
+   * estande à finalização no ponto.
+   */
+  public record RankingResponse(
+      int posicao,
+      UUID jogadorId,
+      String jogadorNome,
+      String jogadorUsername,
+      int pontos,
+      int entregas,
+      long melhorTempoSegundos,
+      long tempoMedioSegundos) {}
+
   // --- Bônus por meta (V32) -------------------------------------------------------------------
 
   /** Cadastro pelo operador: "complete {@code meta} entregas e ganhe {@code recompensa}". */
