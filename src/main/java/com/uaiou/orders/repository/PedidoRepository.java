@@ -41,6 +41,16 @@ public interface PedidoRepository
   /** Modo feira: o pedido-prêmio é identificado por ter recompensa em texto (V28__feira.sql). */
   List<Pedido> findByFeiraRecompensaIsNotNullOrderByCriadoEmDesc();
 
+  /**
+   * Modo feira: entregas concluídas por um jogador — as instâncias dele (têm origem) já
+   * finalizadas. É o contador dos bônus por meta (V32).
+   */
+  @Query(
+      "select count(p) from Pedido p where p.entregadorId = :jogadorId"
+          + " and p.feiraOrigemId is not null and p.status in :status")
+  long contarEntregasDeFeira(
+      @Param("jogadorId") UUID jogadorId, @Param("status") List<OrderStatus> status);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select p from Pedido p where p.id = :id")
   Optional<Pedido> findByIdForUpdate(@Param("id") UUID id);

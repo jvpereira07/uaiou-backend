@@ -2,11 +2,15 @@ package com.uaiou.feira.web;
 
 import com.uaiou.auth.web.AuthenticatedUser;
 import com.uaiou.auth.web.CurrentUserHolder;
+import com.uaiou.feira.dto.FeiraDtos.BonusAdminResponse;
+import com.uaiou.feira.dto.FeiraDtos.BonusConquistaAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.CapturaAdminResponse;
+import com.uaiou.feira.dto.FeiraDtos.CriarBonusRequest;
 import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
+import com.uaiou.feira.service.FeiraBonusService;
 import com.uaiou.feira.service.FeiraGuard;
 import com.uaiou.feira.service.FeiraOrderService;
 import jakarta.validation.Valid;
@@ -28,12 +32,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class FeiraAdminController {
 
   private final FeiraOrderService orderService;
+  private final FeiraBonusService bonusService;
   private final FeiraGuard guard;
   private final CurrentUserHolder currentUserHolder;
 
   public FeiraAdminController(
-      FeiraOrderService orderService, FeiraGuard guard, CurrentUserHolder currentUserHolder) {
+      FeiraOrderService orderService,
+      FeiraBonusService bonusService,
+      FeiraGuard guard,
+      CurrentUserHolder currentUserHolder) {
     this.orderService = orderService;
+    this.bonusService = bonusService;
     this.guard = guard;
     this.currentUserHolder = currentUserHolder;
   }
@@ -110,5 +119,44 @@ public class FeiraAdminController {
     AuthenticatedUser user = currentUserHolder.require();
     guard.requireAdmin(user);
     return orderService.encerrar(pedidoId);
+  }
+
+  /** Bônus por meta (V32): "complete N entregas e ganhe X". */
+  @PostMapping("/bonus")
+  @ResponseStatus(HttpStatus.CREATED)
+  public BonusAdminResponse criarBonus(@Valid @RequestBody CriarBonusRequest request) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return bonusService.criar(request);
+  }
+
+  @GetMapping("/bonus")
+  public List<BonusAdminResponse> bonus() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return bonusService.listarParaAdmin();
+  }
+
+  @PostMapping("/bonus/{bonusId}/encerramento")
+  public BonusAdminResponse encerrarBonus(@PathVariable UUID bonusId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return bonusService.encerrar(bonusId);
+  }
+
+  /** Quem conquistou algum bônus, o mais antigo primeiro — a fila do balcão para os bônus. */
+  @GetMapping("/bonus-conquistas")
+  public List<BonusConquistaAdminResponse> conquistasDeBonus() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return bonusService.conquistasParaAdmin();
+  }
+
+  @PostMapping("/bonus-conquistas/{conquistaId}/entrega")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void entregarBonus(@PathVariable UUID conquistaId) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    bonusService.marcarEntregue(conquistaId);
   }
 }

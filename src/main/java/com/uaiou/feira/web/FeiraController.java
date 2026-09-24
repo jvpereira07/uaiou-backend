@@ -3,11 +3,13 @@ package com.uaiou.feira.web;
 import com.uaiou.auth.web.AuthenticatedUser;
 import com.uaiou.auth.web.CurrentUserHolder;
 import com.uaiou.feira.config.FeiraProperties;
+import com.uaiou.feira.dto.FeiraDtos.BonusResponse;
 import com.uaiou.feira.dto.FeiraDtos.CapturaResponse;
 import com.uaiou.feira.dto.FeiraDtos.EntrarRequest;
 import com.uaiou.feira.dto.FeiraDtos.EntrarResponse;
 import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoResponse;
+import com.uaiou.feira.service.FeiraBonusService;
 import com.uaiou.feira.service.FeiraGuard;
 import com.uaiou.feira.service.FeiraOrderService;
 import com.uaiou.feira.service.FeiraPlayerService;
@@ -34,6 +36,7 @@ public class FeiraController {
 
   private final FeiraPlayerService playerService;
   private final FeiraOrderService orderService;
+  private final FeiraBonusService bonusService;
   private final FeiraGuard guard;
   private final FeiraProperties properties;
   private final CurrentUserHolder currentUserHolder;
@@ -41,11 +44,13 @@ public class FeiraController {
   public FeiraController(
       FeiraPlayerService playerService,
       FeiraOrderService orderService,
+      FeiraBonusService bonusService,
       FeiraGuard guard,
       FeiraProperties properties,
       CurrentUserHolder currentUserHolder) {
     this.playerService = playerService;
     this.orderService = orderService;
+    this.bonusService = bonusService;
     this.guard = guard;
     this.properties = properties;
     this.currentUserHolder = currentUserHolder;
@@ -111,5 +116,13 @@ public class FeiraController {
     AuthenticatedUser user = currentUserHolder.require();
     guard.requireJogador(user);
     return orderService.minhasCapturas(user.userId());
+  }
+
+  /** Bônus por meta com o progresso deste jogador (V32). */
+  @GetMapping("/bonus")
+  public List<BonusResponse> bonus() {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireJogador(user);
+    return bonusService.listarParaJogador(user.userId());
   }
 }

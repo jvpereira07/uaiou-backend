@@ -104,4 +104,50 @@ public final class FeiraDtos {
       int restantes,
       Instant encerradoEm,
       Instant criadoEm) {}
+
+  // --- Bônus por meta (V32) -------------------------------------------------------------------
+
+  /** Cadastro pelo operador: "complete {@code meta} entregas e ganhe {@code recompensa}". */
+  public record CriarBonusRequest(
+      @NotBlank @Size(max = 60) String titulo,
+      @NotNull @Min(1) @Max(999) Integer meta,
+      @NotBlank @Size(max = 60) String recompensa) {}
+
+  /** Visão do operador, com quantos já conquistaram e quantos já retiraram. */
+  public record BonusAdminResponse(
+      UUID id,
+      String titulo,
+      int meta,
+      String recompensa,
+      int conquistas,
+      int entregues,
+      Instant encerradoEm,
+      Instant criadoEm) {}
+
+  /** Quem conquistou um bônus e se já retirou o prêmio. */
+  public record BonusConquistaAdminResponse(
+      UUID id,
+      UUID bonusId,
+      String titulo,
+      String recompensa,
+      UUID jogadorId,
+      String jogadorNome,
+      String jogadorUsername,
+      Instant conquistadoEm,
+      Instant entregueEm) {}
+
+  /**
+   * O que o jogador vê: a meta, quanto falta e, se já conquistou, se retirou. {@code entregas} é o
+   * total de entregas concluídas do jogador — o mesmo para todos os bônus da lista.
+   */
+  public record BonusResponse(
+      UUID id,
+      String titulo,
+      int meta,
+      String recompensa,
+      int entregas,
+      boolean encerrado,
+      boolean conquistado,
+      Instant conquistadoEm,
+      Instant entregueEm) {}
 }

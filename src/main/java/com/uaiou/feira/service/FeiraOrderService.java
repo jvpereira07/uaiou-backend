@@ -53,6 +53,7 @@ public class FeiraOrderService {
   private final FeiraProperties properties;
   private final GeofenceEvaluator geofenceEvaluator;
   private final ApplicationEventPublisher events;
+  private final FeiraBonusService bonusService;
 
   public FeiraOrderService(
       PedidoRepository pedidoRepository,
@@ -61,7 +62,9 @@ public class FeiraOrderService {
       EstabelecimentoRepository estabelecimentoRepository,
       FeiraProperties properties,
       GeofenceEvaluator geofenceEvaluator,
-      ApplicationEventPublisher events) {
+      ApplicationEventPublisher events,
+      FeiraBonusService bonusService) {
+    this.bonusService = bonusService;
     this.pedidoRepository = pedidoRepository;
     this.capturaRepository = capturaRepository;
     this.entregadorRepository = entregadorRepository;
@@ -347,6 +350,8 @@ public class FeiraOrderService {
     }
 
     pedido.finalizar();
+    // Cada entrega concluída pode fechar a meta de um bônus (V32).
+    bonusService.avaliar(jogadorId);
     return respostaDaCapturaDe(pedido);
   }
 
