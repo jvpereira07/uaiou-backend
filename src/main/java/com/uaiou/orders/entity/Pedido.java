@@ -130,6 +130,13 @@ public class Pedido {
   @Column(name = "feira_origem_id")
   private UUID feiraOrigemId;
 
+  /**
+   * V33 — código fixo que o jogador digita no ponto para finalizar. Definido pelo operador na
+   * publicação e copiado para cada instância; nulo nos pedidos anteriores, que finalizam sem ele.
+   */
+  @Column(name = "feira_codigo")
+  private String feiraCodigo;
+
   protected Pedido() {
     // exigido pela JPA
   }
@@ -179,8 +186,10 @@ public class Pedido {
       BigDecimal longitude,
       String rotulo,
       String recompensa,
-      int limite) {
+      int limite,
+      String codigo) {
     Pedido pedido = new Pedido();
+    pedido.feiraCodigo = codigo;
     pedido.id = id;
     pedido.numero = numero;
     pedido.estabelecimentoId = estabelecimentoId;
@@ -218,6 +227,7 @@ public class Pedido {
     pedido.creditosConsumidos = 0;
     pedido.feiraRecompensa = modelo.feiraRecompensa;
     pedido.feiraOrigemId = modelo.id;
+    pedido.feiraCodigo = modelo.feiraCodigo;
     pedido.entregadorId = entregadorId;
     pedido.status = OrderStatus.ACCEPTED;
     pedido.aceitoEm = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
@@ -340,6 +350,10 @@ public class Pedido {
 
   public boolean isFeira() {
     return feiraRecompensa != null;
+  }
+
+  public String getFeiraCodigo() {
+    return feiraCodigo;
   }
 
   public String getFeiraRecompensa() {

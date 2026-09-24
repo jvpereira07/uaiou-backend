@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,7 +37,12 @@ public final class FeiraDtos {
       @NotNull @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude,
       @NotBlank @Size(max = 80) String rotulo,
       @NotBlank @Size(max = 60) String recompensa,
-      @NotNull @Min(1) @Max(999) Integer limite) {}
+      @NotNull @Min(1) @Max(999) Integer limite,
+      /** V33 — código fixo que o jogador digita no ponto para finalizar. */
+      @NotBlank @Pattern(regexp = "^[0-9]{4,6}$") String codigo) {}
+
+  /** Finalização no ponto: o código que o operador deixou escrito lá. */
+  public record FinalizarRequest(@Size(max = 6) String codigo) {}
 
   /**
    * O que o jogador vê. {@code capturado} é por jogador: é o que faz o botão virar "você já pegou"
@@ -103,7 +109,9 @@ public final class FeiraDtos {
       int capturas,
       int restantes,
       Instant encerradoEm,
-      Instant criadoEm) {}
+      Instant criadoEm,
+      /** V33 — só o operador vê; é o que ele deixa escrito no ponto. */
+      String codigo) {}
 
   // --- Bônus por meta (V32) -------------------------------------------------------------------
 

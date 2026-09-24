@@ -116,7 +116,8 @@ public class FeiraOrderService {
             request.longitude(),
             request.rotulo().trim(),
             request.recompensa().trim(),
-            request.limite());
+            request.limite(),
+            request.codigo().trim());
     return toAdmin(pedidoRepository.saveAndFlush(pedido));
   }
 
@@ -322,7 +323,7 @@ public class FeiraOrderService {
    * demonstração.
    */
   @Transactional
-  public CapturaResponse finalizar(UUID pedidoId, UUID jogadorId) {
+  public CapturaResponse finalizar(UUID pedidoId, UUID jogadorId, String codigo) {
     Pedido pedido =
         pedidoRepository
             .findByIdForUpdate(pedidoId)
@@ -345,7 +346,15 @@ public class FeiraOrderService {
             .findById(jogadorId)
             .orElseThrow(
                 () -> new NotFoundException("JOGADOR_NOT_FOUND", "Jogador não encontrado."));
-    if (!geofenceEvaluator.dentroDoRaio(jogador.getLat(), jogador.getLongitude(), pedido)) {
+    // V33: com código definido, ele é a prova de presença — quem leu no ponto esteve lá, e GPS
+    // dentro de pavilhão erra demais para ser exigido junto. Pedidos antigos seguem no geofence.
+    String esperado = pedido.getFeiraCodigo();
+    if (esperado != null) {
+      if (codigo == null || !esperado.equals(codigo.trim())) {
+        throw new ConflictException("CODIGO_INVALIDO", "Código incorreto. Confira no ponto.");
+      }
+    } else if (!geofenceEvaluator.dentroDoRaio(
+        jogador.getLat(), jogador.getLongitude(), pedido)) {
       throw new ConflictException("FORA_DO_PONTO", "Chegue mais perto do ponto para finalizar.");
     }
 
@@ -482,6 +491,7 @@ public class FeiraOrderService {
         pedido.getFeiraCapturas(),
         pedido.getFeiraRestantes(),
         pedido.getFeiraEncerradoEm(),
-        pedido.getCriadoEm());
+        pedido.getCriadoEm(),
+        pedido.getFeiraCodigo());
   }
 }

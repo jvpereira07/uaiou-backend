@@ -8,6 +8,7 @@ import com.uaiou.feira.dto.FeiraDtos.CapturaResponse;
 import com.uaiou.feira.dto.FeiraDtos.EntrarRequest;
 import com.uaiou.feira.dto.FeiraDtos.EntrarResponse;
 import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
+import com.uaiou.feira.dto.FeiraDtos.FinalizarRequest;
 import com.uaiou.feira.dto.FeiraDtos.PedidoResponse;
 import com.uaiou.feira.service.FeiraBonusService;
 import com.uaiou.feira.service.FeiraGuard;
@@ -105,10 +106,13 @@ public class FeiraController {
    * o do jogador (a instância criada na captura), não o modelo publicado pelo admin.
    */
   @PostMapping("/pedidos/{pedidoId}/finalizacao")
-  public CapturaResponse finalizar(@PathVariable UUID pedidoId) {
+  public CapturaResponse finalizar(
+      @PathVariable UUID pedidoId,
+      @Valid @RequestBody(required = false) FinalizarRequest request) {
     AuthenticatedUser user = currentUserHolder.require();
     guard.requireJogador(user);
-    return orderService.finalizar(pedidoId, user.userId());
+    return orderService.finalizar(
+        pedidoId, user.userId(), request == null ? null : request.codigo());
   }
 
   @GetMapping("/capturas")
