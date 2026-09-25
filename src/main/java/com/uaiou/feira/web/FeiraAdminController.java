@@ -7,6 +7,7 @@ import com.uaiou.feira.dto.FeiraDtos.BonusConquistaAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.CapturaAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.CriarBonusRequest;
 import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
+import com.uaiou.feira.dto.FeiraDtos.EditarPedidoRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
@@ -117,6 +118,15 @@ public class FeiraAdminController {
     AuthenticatedUser user = currentUserHolder.require();
     guard.requireAdmin(user);
     orderService.descartar(capturaId);
+  }
+
+  /** Troca prêmio, apelido, estoque ou código de um pedido já publicado. */
+  @PutMapping("/pedidos/{pedidoId}")
+  public PedidoAdminResponse editar(
+      @PathVariable UUID pedidoId, @Valid @RequestBody EditarPedidoRequest request) {
+    AuthenticatedUser user = currentUserHolder.require();
+    guard.requireAdmin(user);
+    return orderService.editar(pedidoId, request);
   }
 
   @PostMapping("/pedidos/{pedidoId}/encerramento")

@@ -5,6 +5,7 @@ import com.uaiou.feira.config.FeiraProperties;
 import com.uaiou.feira.dto.FeiraDtos.CapturaAdminResponse;
 import com.uaiou.feira.dto.FeiraDtos.CapturaResponse;
 import com.uaiou.feira.dto.FeiraDtos.CriarPedidoRequest;
+import com.uaiou.feira.dto.FeiraDtos.EditarPedidoRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeRequest;
 import com.uaiou.feira.dto.FeiraDtos.EstandeResponse;
 import com.uaiou.feira.dto.FeiraDtos.PedidoAdminResponse;
@@ -451,6 +452,30 @@ public class FeiraOrderService {
     if (modeloId != null) {
       pedidoRepository.findByIdForUpdate(modeloId).ifPresent(Pedido::devolverCapturaNaFeira);
     }
+  }
+
+  @Transactional
+  public PedidoAdminResponse editar(UUID pedidoId, EditarPedidoRequest request) {
+    // Trava como na captura: o limite é comparado com o contador, que muda a cada captura.
+    Pedido modelo =
+        pedidoRepository
+            .findByIdForUpdate(pedidoId)
+            .filter(Pedido::isFeiraModelo)
+            .orElseThrow(() -> new NotFoundException("PEDIDO_NOT_FOUND", "Pedido não encontrado."));
+    if (request.limite() < modelo.getFeiraCapturas()) {
+      throw new ConflictException(
+          "LIMITE_ABAIXO_DAS_CAPTURAS",
+          "Já foram " + modelo.getFeiraCapturas() + " capturas; o limite não pode ser menor.");
+    }
+    modelo.editarNaFeira(
+        request.rotulo().trim(),
+        request.recompensa().trim(),
+        request.limite(),
+        request.codigo().trim());
+    for (Pedido instancia : pedidoRepository.findByFeiraOrigemId(pedidoId)) {
+      instancia.copiarEdicaoDoModelo(modelo);
+    }
+    return toAdmin(pedidoRepository.save(modelo));
   }
 
   @Transactional

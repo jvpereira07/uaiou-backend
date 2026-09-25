@@ -420,6 +420,32 @@ public class Pedido {
     }
   }
 
+  /**
+   * Edição pelo operador depois de publicado (trocar o prêmio, corrigir o apelido, repor estoque).
+   * O limite nunca fica abaixo do que já foi capturado — quem valida é o serviço. Mesma regra de
+   * {@link #devolverCapturaNaFeira()}: se estava esgotado e ganhou estoque, reabre; se o novo limite
+   * zera o que resta, encerra.
+   */
+  public void editarNaFeira(String rotulo, String recompensa, int limite, String codigo) {
+    boolean esgotado = getFeiraRestantes() == 0;
+    this.destBairro = rotulo;
+    this.feiraRecompensa = recompensa;
+    this.feiraLimite = limite;
+    this.feiraCodigo = codigo;
+    if (getFeiraRestantes() == 0) {
+      encerrarNaFeira();
+    } else if (esgotado) {
+      feiraEncerradoEm = null;
+    }
+  }
+
+  /** A instância de um jogador acompanha a edição do modelo: prêmio, apelido e código. */
+  public void copiarEdicaoDoModelo(Pedido modelo) {
+    this.destBairro = modelo.destBairro;
+    this.feiraRecompensa = modelo.feiraRecompensa;
+    this.feiraCodigo = modelo.feiraCodigo;
+  }
+
   /** Encerramento manual pelo operador: para de aceitar capturas, não desfaz as já feitas. */
   public void encerrarNaFeira() {
     if (feiraEncerradoEm == null) {

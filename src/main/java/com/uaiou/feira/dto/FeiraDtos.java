@@ -41,6 +41,13 @@ public final class FeiraDtos {
       /** V33 — código fixo que o jogador digita no ponto para finalizar. */
       @NotBlank @Pattern(regexp = "^[0-9]{4,6}$") String codigo) {}
 
+  /** Edição de um pedido já publicado. O ponto no mapa não muda. */
+  public record EditarPedidoRequest(
+      @NotBlank @Size(max = 80) String rotulo,
+      @NotBlank @Size(max = 60) String recompensa,
+      @NotNull @Min(1) @Max(999) Integer limite,
+      @NotBlank @Pattern(regexp = "^[0-9]{4,6}$") String codigo) {}
+
   /** Finalização no ponto: o código que o operador deixou escrito lá. */
   public record FinalizarRequest(@Size(max = 6) String codigo) {}
 
