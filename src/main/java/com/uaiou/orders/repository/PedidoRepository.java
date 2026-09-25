@@ -54,6 +54,12 @@ public interface PedidoRepository
   long contarEntregasDeFeira(
       @Param("jogadorId") UUID jogadorId, @Param("status") List<OrderStatus> status);
 
+  /** Modo feira: jogadores com ao menos uma entrega num dos status dados. */
+  @Query(
+      "select distinct p.entregadorId from Pedido p where p.feiraOrigemId is not null"
+          + " and p.status in :status")
+  List<UUID> jogadoresComEntregasDeFeira(@Param("status") List<OrderStatus> status);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select p from Pedido p where p.id = :id")
   Optional<Pedido> findByIdForUpdate(@Param("id") UUID id);

@@ -64,7 +64,10 @@ public class FeiraBonusService {
                 request.titulo().trim(),
                 request.meta(),
                 request.recompensa().trim()));
-    return toAdmin(bonus, List.of());
+    // Quem já bateu a meta antes do bônus existir não finaliza nada de novo para ser avaliado:
+    // sem isto, o maratonista criado no meio da feira nunca aparecia no balcão.
+    pedidoRepository.jogadoresComEntregasDeFeira(CONCLUIDAS).forEach(this::avaliar);
+    return toAdmin(bonus, conquistaRepository.findByBonusIdOrderByConquistadoEmAsc(bonus.getId()));
   }
 
   @Transactional(readOnly = true)
@@ -132,8 +135,11 @@ public class FeiraBonusService {
         .marcarEntregue();
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public List<BonusResponse> listarParaJogador(UUID jogadorId) {
+    // Rede para meta batida sem finalização que a avaliasse (bônus criado depois, falha antiga):
+    // o jogador que abre a lista já aparece no balcão.
+    avaliar(jogadorId);
     int entregas = (int) pedidoRepository.contarEntregasDeFeira(jogadorId, CONCLUIDAS);
     Map<UUID, FeiraBonusConquista> minhas =
         conquistaRepository.findByEntregadorId(jogadorId).stream()

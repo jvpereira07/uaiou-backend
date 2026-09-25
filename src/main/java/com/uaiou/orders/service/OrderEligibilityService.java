@@ -1,6 +1,8 @@
 package com.uaiou.orders.service;
 
 import com.uaiou.blocks.repository.BloqueioRepository;
+import com.uaiou.feira.entity.FeiraCaptura;
+import com.uaiou.feira.repository.FeiraCapturaRepository;
 import com.uaiou.orders.Distances;
 import com.uaiou.orders.OrderStatus;
 import com.uaiou.orders.config.OrdersProperties;
@@ -45,6 +47,7 @@ public class OrderEligibilityService {
   private final CourierPresenceService courierPresenceService;
   private final OrdersProperties properties;
   private final DesistenciaPedidoRepository desistenciaRepository;
+  private final FeiraCapturaRepository capturaRepository;
 
   public OrderEligibilityService(
       PedidoRepository pedidoRepository,
@@ -53,7 +56,9 @@ public class OrderEligibilityService {
       BloqueioRepository bloqueioRepository,
       CourierPresenceService courierPresenceService,
       OrdersProperties properties,
-      DesistenciaPedidoRepository desistenciaRepository) {
+      DesistenciaPedidoRepository desistenciaRepository,
+      FeiraCapturaRepository capturaRepository) {
+    this.capturaRepository = capturaRepository;
     this.desistenciaRepository = desistenciaRepository;
     this.pedidoRepository = pedidoRepository;
     this.entregadorRepository = entregadorRepository;
@@ -87,6 +92,13 @@ public class OrderEligibilityService {
         Distances.caixaDelimitadora(
             entregador.getLat(), entregador.getLongitude(), properties.eligibilityRadiusKm());
 
+    // Modo feira: cada jogador pega um pedido uma vez só (ux_feira_captura); o que ele já pegou
+    // sai da vitrine dele em vez de virar erro ao tocar.
+    Set<UUID> jaCapturados =
+        capturaRepository.findByEntregadorIdOrderByCriadoEmDesc(entregadorId).stream()
+            .map(FeiraCaptura::getPedidoId)
+            .collect(Collectors.toSet());
+
     List<PedidoElegivel> visiveis =
         pedidoRepository
             .findNaCaixaDelimitadora(
@@ -100,6 +112,7 @@ public class OrderEligibilityService {
             // Modo feira (docs/feira/): encerrar ou esgotar não muda o status do modelo, que segue
             // PUBLISHED; sem este corte o pedido encerrado continuava na vitrine do app.
             .filter(pedido -> !pedido.isFeira() || pedido.isFeiraCapturavel())
+            .filter(pedido -> !jaCapturados.contains(pedido.getId()))
             .map(
                 pedido ->
                     new PedidoElegivel(
