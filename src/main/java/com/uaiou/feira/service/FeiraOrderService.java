@@ -182,6 +182,11 @@ public class FeiraOrderService {
     if (modelo.getFeiraEncerradoEm() != null) {
       throw new ConflictException("PEDIDO_ENCERRADO", "Este pedido já foi encerrado.");
     }
+    // Antes do insert: a violação da ux_feira_captura aborta a transação no Postgres, e a consulta
+    // no catch já não roda — o jogador via erro genérico. A trava no modelo serializa a checagem.
+    if (capturaRepository.existsByPedidoIdAndEntregadorId(modeloId, jogadorId)) {
+      throw new ConflictException("JA_CAPTURADO", "Você já pegou este pedido.");
+    }
     if (modelo.getFeiraRestantes() <= 0) {
       throw new ConflictException("RECOMPENSA_ESGOTADA", "As recompensas deste pedido acabaram.");
     }
