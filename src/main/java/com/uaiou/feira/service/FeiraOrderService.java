@@ -196,6 +196,11 @@ public class FeiraOrderService {
     Pedido instancia =
         Pedido.instanciaDeFeira(instanciaId, numeroDe(instanciaId), modelo, jogadorId);
 
+    // Liberação automática: a captura já sai coletada, sem o operador clicar "liberar" no
+    // estande. Antes do insert para não depender de a instância seguir gerenciada. O tempo do
+    // ranking passa a contar da captura.
+    instancia.confirmarColeta();
+
     FeiraCaptura captura = new FeiraCaptura(UuidV7.next(), modeloId, jogadorId, instanciaId);
     try {
       // O pedido antes da captura: a FK de pedido_gerado_id exige que ele já exista, e é a unique
@@ -214,6 +219,9 @@ public class FeiraOrderService {
     }
 
     modelo.capturarNaFeira();
+
+    // Liberação automática (ver confirmarColeta antes do insert).
+    events.publishEvent(new OrderLifecycleEvents.PickedUp(instancia.getId(), jogadorId));
 
     return new CapturaResponse(
         captura.getId(),
