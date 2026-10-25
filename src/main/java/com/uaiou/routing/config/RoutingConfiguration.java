@@ -3,6 +3,7 @@ package com.uaiou.routing.config;
 import com.uaiou.routing.RoutingService;
 import com.uaiou.routing.service.DisabledRoutingService;
 import com.uaiou.routing.service.GeoapifyRoutingService;
+import com.uaiou.routing.service.OsrmRoutingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,10 @@ public class RoutingConfiguration {
           "Rotas desligadas: ROUTING_API_KEY ausente. GET /orders/'{'id'}'/route responde sem"
               + " trajeto — o ciclo de entrega segue normal.");
       return new DisabledRoutingService();
+    }
+    if (properties.osrm()) {
+      log.info("Rotas pelo OSRM em {}.", properties.baseUrl());
+      return new OsrmRoutingService(routingRestClient(properties), properties);
     }
     return new GeoapifyRoutingService(routingRestClient(properties), properties);
   }

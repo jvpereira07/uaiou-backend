@@ -40,3 +40,6 @@ build/
 *firebase-adminsdk*.json
 firebase-service-account.json
 secrets/
+
+# Mapa pré-processado do OSRM (gigabytes, regerável)
+osrm-data/

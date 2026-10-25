@@ -25,6 +25,27 @@ public interface RoutingService {
    */
   Optional<Route> route(List<Point> waypoints);
 
+  /**
+   * Tempo e distância por via de cada ponto para cada outro — insumo para escolher a ordem das
+   * paradas quando o entregador carrega mais de um pedido. Provedor que não oferece matriz devolve
+   * vazio, pelo mesmo contrato de {@link #route}: quem chama cai na ordem dada.
+   */
+  default Optional<Matrix> matrix(List<Point> points) {
+    return Optional.empty();
+  }
+
+  /**
+   * @param durationsSeconds {@code [de][para]}; {@link #UNREACHABLE} quando não há caminho.
+   * @param distancesMeters mesma forma; {@link #UNREACHABLE} quando não há caminho.
+   */
+  record Matrix(int[][] durationsSeconds, int[][] distancesMeters) {
+    public static final int UNREACHABLE = -1;
+
+    public int size() {
+      return durationsSeconds.length;
+    }
+  }
+
   record Point(BigDecimal lat, BigDecimal lng) {}
 
   /**

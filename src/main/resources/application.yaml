@@ -144,6 +144,9 @@ app:
   routing:
     # T-25 — rotas por via. Chave VAZIA é estado válido: o recurso desliga e a aplicação sobe igual
     # (critério de aceite 6). Nunca versionar a chave: chave de rota no repositório é chave a revogar.
+    # `geoapify` ou `osrm`. Com `osrm`, a chave é dispensada e ROUTING_BASE_URL aponta para o
+    # servidor próprio (ex.: http://osrm:5000); é o provedor que habilita a matriz multi-pedido.
+    provider: ${ROUTING_PROVIDER:geoapify}
     api-key: ${ROUTING_API_KEY:}
     base-url: ${ROUTING_BASE_URL:https://api.geoapify.com}
     # RF-25.2: o veículo real da praça.
