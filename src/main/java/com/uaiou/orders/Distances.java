@@ -36,6 +36,35 @@ public final class Distances {
   }
 
   /**
+   * Distâncias de uma entrega vistas do entregador, em linha reta.
+   *
+   * @param maisLongeKm até o ponto mais distante entre a loja e o destino — é ela que decide se o
+   *     pedido está "perto": um destino a 1 km com a loja a 8 km não é uma corrida curta.
+   * @param totalKm percurso inteiro: entregador → loja → destino.
+   */
+  public record Percurso(double maisLongeKm, double totalKm) {}
+
+  /**
+   * @param lojaLat nulo quando a loja não marcou o ponto (RF-25.5) ou o pedido já foi coletado — a
+   *     loja sai da conta e sobra o trecho direto ao destino.
+   */
+  public static Percurso percurso(
+      BigDecimal deLat,
+      BigDecimal deLong,
+      BigDecimal lojaLat,
+      BigDecimal lojaLong,
+      BigDecimal destLat,
+      BigDecimal destLong) {
+    double ateDestino = haversineKm(deLat, deLong, destLat, destLong);
+    if (lojaLat == null || lojaLong == null) {
+      return new Percurso(ateDestino, ateDestino);
+    }
+    double ateLoja = haversineKm(deLat, deLong, lojaLat, lojaLong);
+    double lojaAoDestino = haversineKm(lojaLat, lojaLong, destLat, destLong);
+    return new Percurso(Math.max(ateLoja, ateDestino), ateLoja + lojaAoDestino);
+  }
+
+  /**
    * Exposto na resposta com uma casa decimal — precisão maior seria falsa (o GPS tem erro próprio).
    */
   public static BigDecimal arredondarKm(double km) {

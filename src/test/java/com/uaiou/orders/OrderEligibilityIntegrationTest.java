@@ -170,6 +170,66 @@ class OrderEligibilityIntegrationTest extends AbstractAuthIntegrationTest {
   }
 
   /**
+   * O raio vale para o ponto mais longe da entrega: destino a ~1 km não basta se a loja fica em
+   * Contagem, a ~30 km. Antes desta regra o pedido aparecia como "perto".
+   */
+  @Test
+  void anOrderWhoseMerchantIsOutsideTheRadiusIsHiddenEvenWithANearbyDestination() {
+    RegisteredTestUser courier = disponivelEm(PERTO_LAT, PERTO_LONG);
+    UUID pedidoId = publicarPedidoDe(merchantEm(LONGE_LAT, LONGE_LONG));
+
+    assertThat(vitrineDe(courier).data()).noneMatch(o -> o.id().equals(pedidoId));
+  }
+
+  /**
+   * Com a loja dentro do raio e mais longe que o destino, {@code distanceKm} mede até a loja, e
+   * {@code totalDistanceKm} soma entregador → loja → destino.
+   */
+  @Test
+  void distanceIsToTheFarthestPointAndTotalCoversTheWholeTrip() {
+    // Loja ~3 km a sudoeste do destino; entregador ~1 km ao norte do destino.
+    RegisteredTestUser courier = disponivelEm(PERTO_LAT, PERTO_LONG);
+    UUID pedidoId = publicarPedidoDe(merchantEm("-19.945000", "-43.960000"));
+
+    var resumo =
+        vitrineDe(courier).data().stream()
+            .filter(o -> o.id().equals(pedidoId))
+            .findFirst()
+            .orElseThrow();
+
+    double ateLoja =
+        Distances.haversineKm(
+            new BigDecimal(PERTO_LAT),
+            new BigDecimal(PERTO_LONG),
+            new BigDecimal("-19.945000"),
+            new BigDecimal("-43.960000"));
+    double lojaAoDestino =
+        Distances.haversineKm(
+            new BigDecimal("-19.945000"),
+            new BigDecimal("-43.960000"),
+            new BigDecimal(DEST_LAT),
+            new BigDecimal(DEST_LONG));
+    assertThat(resumo.distanceKm()).isEqualByComparingTo(Distances.arredondarKm(ateLoja));
+    assertThat(resumo.totalDistanceKm())
+        .isEqualByComparingTo(Distances.arredondarKm(ateLoja + lojaAoDestino));
+  }
+
+  /** Loja sem coordenada (RF-25.5) sai da conta: vale o destino, para as duas medidas. */
+  @Test
+  void aMerchantWithoutCoordinatesFallsBackToTheDestination() {
+    RegisteredTestUser courier = disponivelEm(PERTO_LAT, PERTO_LONG);
+    UUID pedidoId = publicarPedido();
+
+    var resumo =
+        vitrineDe(courier).data().stream()
+            .filter(o -> o.id().equals(pedidoId))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(resumo.totalDistanceKm()).isEqualByComparingTo(resumo.distanceKm());
+  }
+
+  /**
    * Critério de aceite 10 de T-11 e critério 7 de T-08: {@code order.published} chega a TODOS os
    * elegíveis e a NENHUM bloqueado. Afirma sobre as notificações realmente entregues no inbox — a
    * fonte de verdade (RF-08.2) —, não sobre um registro auxiliar.
@@ -240,6 +300,17 @@ class OrderEligibilityIntegrationTest extends AbstractAuthIntegrationTest {
     RegisteredTestUser merchant = registerAndActivateMerchant();
     orders.darCreditos(merchant.id(), 5);
     return publicarPedidoDe(merchant);
+  }
+
+  private RegisteredTestUser merchantEm(String lat, String lng) {
+    RegisteredTestUser merchant = registerAndActivateMerchant();
+    orders.darCreditos(merchant.id(), 5);
+    jdbcTemplate.update(
+        "update estabelecimento set lat = ?, \"long\" = ? where usuario_id = ?",
+        new BigDecimal(lat),
+        new BigDecimal(lng),
+        merchant.id());
+    return merchant;
   }
 
   private UUID publicarPedidoDe(RegisteredTestUser merchant) {

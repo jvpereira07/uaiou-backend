@@ -12,6 +12,11 @@ import java.util.UUID;
 /**
  * Uma linha de {@code GET /orders}. {@code distanceKm} é nulo para o estabelecimento (não faz
  * sentido: ele não se desloca) e derivado em runtime para o entregador (RF-11.7).
+ *
+ * <p>Para o entregador, {@code distanceKm} é até o ponto <strong>mais longe</strong> da entrega — a
+ * loja ou o destino —, e {@code totalDistanceKm} é o percurso inteiro, entregador → loja → destino.
+ * Os dois em linha reta: a vitrine não pode depender do provedor de rotas (RF-25.7); a distância
+ * por via fica em {@code GET /orders/{id}/route}.
  */
 public record OrderSummary(
     UUID id,
@@ -19,6 +24,7 @@ public record OrderSummary(
     OrderStatus status,
     Money proposedFee,
     BigDecimal distanceKm,
+    BigDecimal totalDistanceKm,
     MerchantRef merchant,
     DestinationResponse destination,
     Instant createdAt,

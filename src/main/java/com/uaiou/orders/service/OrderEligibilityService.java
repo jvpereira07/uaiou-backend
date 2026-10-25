@@ -12,12 +12,17 @@ import com.uaiou.presence.CourierPresence;
 import com.uaiou.presence.service.CourierPresenceService;
 import com.uaiou.users.UserStatus;
 import com.uaiou.users.entity.Entregador;
+import com.uaiou.users.entity.Estabelecimento;
 import com.uaiou.users.repository.EntregadorRepository;
+import com.uaiou.users.repository.EstabelecimentoRepository;
 import com.uaiou.users.repository.UsuarioRepository;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Filtros (RN-01.1): entregador {@code ativo} e {@code disponivel}, posição fresca (T-10),
  * dentro do raio (caixa delimitadora + distância real, T-02) e não bloqueado pelo estabelecimento
  * (T-12).
+ *
+ * <p>"Dentro do raio" vale para o ponto <strong>mais longe</strong> da entrega — a loja ou o
+ * destino, o que estiver mais distante do entregador. Medir só o destino mostrava como "perto" um
+ * pedido cuja loja ficava do outro lado da cidade.
  */
 @Service
 public class OrderEligibilityService {
@@ -45,6 +54,7 @@ public class OrderEligibilityService {
   private final CourierPresenceService courierPresenceService;
   private final OrdersProperties properties;
   private final DesistenciaPedidoRepository desistenciaRepository;
+  private final EstabelecimentoRepository estabelecimentoRepository;
 
   public OrderEligibilityService(
       PedidoRepository pedidoRepository,
@@ -53,8 +63,10 @@ public class OrderEligibilityService {
       BloqueioRepository bloqueioRepository,
       CourierPresenceService courierPresenceService,
       OrdersProperties properties,
-      DesistenciaPedidoRepository desistenciaRepository) {
+      DesistenciaPedidoRepository desistenciaRepository,
+      EstabelecimentoRepository estabelecimentoRepository) {
     this.desistenciaRepository = desistenciaRepository;
+    this.estabelecimentoRepository = estabelecimentoRepository;
     this.pedidoRepository = pedidoRepository;
     this.entregadorRepository = entregadorRepository;
     this.usuarioRepository = usuarioRepository;
@@ -87,25 +99,30 @@ public class OrderEligibilityService {
         Distances.caixaDelimitadora(
             entregador.getLat(), entregador.getLongitude(), properties.eligibilityRadiusKm());
 
+    // A caixa recorta pelo destino, o que continua correto: se o ponto mais longe precisa caber no
+    // raio, o destino também precisa. A loja é conferida em memória, logo abaixo.
+    List<Pedido> naCaixa =
+        pedidoRepository.findNaCaixaDelimitadora(
+            NA_VITRINE,
+            caixa.latMin(),
+            caixa.latMax(),
+            caixa.longMin(),
+            caixa.longMax(),
+            entregadorId);
+    Map<UUID, Estabelecimento> lojas = lojasDe(naCaixa);
+
     List<PedidoElegivel> visiveis =
-        pedidoRepository
-            .findNaCaixaDelimitadora(
-                NA_VITRINE,
-                caixa.latMin(),
-                caixa.latMax(),
-                caixa.longMin(),
-                caixa.longMax(),
-                entregadorId)
-            .stream()
+        naCaixa.stream()
             .map(
-                pedido ->
-                    new PedidoElegivel(
-                        pedido,
-                        Distances.haversineKm(
-                            entregador.getLat(),
-                            entregador.getLongitude(),
-                            pedido.getDestLat(),
-                            pedido.getDestLong())))
+                pedido -> {
+                  Distances.Percurso percurso =
+                      percurso(
+                          entregador.getLat(),
+                          entregador.getLongitude(),
+                          lojas.get(pedido.getEstabelecimentoId()),
+                          pedido);
+                  return new PedidoElegivel(pedido, percurso.maisLongeKm(), percurso.totalKm());
+                })
             // A caixa é um quadrado; o raio é um círculo. Sem este corte, os cantos entrariam.
             .filter(candidato -> candidato.distanciaKm() <= properties.eligibilityRadiusKm())
             .sorted((a, b) -> Double.compare(a.distanciaKm(), b.distanciaKm()))
@@ -128,17 +145,16 @@ public class OrderEligibilityService {
             .map(DesistenciaPedido::getEntregadorId)
             .collect(Collectors.toSet());
 
+    Estabelecimento loja =
+        estabelecimentoRepository.findById(pedido.getEstabelecimentoId()).orElse(null);
+
     return courierPresenceService.findEligibleCouriers().stream()
         .filter(presenca -> !bloqueados.contains(presenca.courierId()))
         .filter(presenca -> !desistiram.contains(presenca.courierId()))
         .filter(presenca -> presenca.lat() != null && presenca.longitude() != null)
         .filter(
             presenca ->
-                Distances.haversineKm(
-                        presenca.lat(),
-                        presenca.longitude(),
-                        pedido.getDestLat(),
-                        pedido.getDestLong())
+                percurso(presenca.lat(), presenca.longitude(), loja, pedido).maisLongeKm()
                     <= properties.eligibilityRadiusKm())
         .map(CourierPresence::courierId)
         .filter(this::contaAtiva)
@@ -153,6 +169,30 @@ public class OrderEligibilityService {
         .orElse(false);
   }
 
+  /** Uma consulta para todas as lojas da página, em vez de uma por pedido. */
+  private Map<UUID, Estabelecimento> lojasDe(List<Pedido> pedidos) {
+    return estabelecimentoRepository
+        .findAllById(pedidos.stream().map(Pedido::getEstabelecimentoId).distinct().toList())
+        .stream()
+        .collect(Collectors.toMap(Estabelecimento::getUsuarioId, Function.identity()));
+  }
+
+  /**
+   * Da posição do entregador até a entrega completa. Loja sem coordenada (RF-25.5) sai da conta, e
+   * aí vale só o destino — o mesmo critério de antes desta regra.
+   */
+  public static Distances.Percurso percurso(
+      BigDecimal lat, BigDecimal lng, Estabelecimento loja, Pedido pedido) {
+    boolean contaLoja = loja != null && pedido.getStatus() != OrderStatus.PICKED_UP;
+    return Distances.percurso(
+        lat,
+        lng,
+        contaLoja ? loja.getLat() : null,
+        contaLoja ? loja.getLongitude() : null,
+        pedido.getDestLat(),
+        pedido.getDestLong());
+  }
+
   private boolean contaAtiva(UUID usuarioId) {
     return usuarioRepository
         .findById(usuarioId)
@@ -160,6 +200,11 @@ public class OrderEligibilityService {
         .orElse(false);
   }
 
-  /** Pedido elegível com a distância já calculada — evita recalcular para montar a resposta. */
-  public record PedidoElegivel(Pedido pedido, double distanciaKm) {}
+  /**
+   * Pedido elegível com as distâncias já calculadas — evita recalcular para montar a resposta.
+   *
+   * @param distanciaKm até o ponto mais longe da entrega (loja ou destino).
+   * @param distanciaTotalKm entregador → loja → destino.
+   */
+  public record PedidoElegivel(Pedido pedido, double distanciaKm, double distanciaTotalKm) {}
 }

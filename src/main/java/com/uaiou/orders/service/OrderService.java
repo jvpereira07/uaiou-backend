@@ -206,7 +206,11 @@ public class OrderService {
     for (OrderEligibilityService.PedidoElegivel item : todos.subList(from, to)) {
       Estabelecimento merchant =
           estabelecimentoRepository.findById(item.pedido().getEstabelecimentoId()).orElse(null);
-      content.add(toSummary(item.pedido(), merchant, Distances.arredondarKm(item.distanciaKm())));
+      content.add(
+          toSummary(
+              item.pedido(),
+              merchant,
+              new Distances.Percurso(item.distanciaKm(), item.distanciaTotalKm())));
     }
     return OrderListResponse.de(Paginator.paginate(content, todos.size(), paging, baseUri), null);
   }
@@ -232,13 +236,13 @@ public class OrderService {
     List<OrderSummary> content =
         page.getContent().stream()
             .map(
-                pedido ->
-                    toSummary(
-                        pedido,
-                        estabelecimentoRepository
-                            .findById(pedido.getEstabelecimentoId())
-                            .orElse(null),
-                        distanciaAte(entregadorId, pedido)))
+                pedido -> {
+                  Estabelecimento loja =
+                      estabelecimentoRepository
+                          .findById(pedido.getEstabelecimentoId())
+                          .orElse(null);
+                  return toSummary(pedido, loja, percursoAte(entregadorId, loja, pedido));
+                })
             .toList();
     return OrderListResponse.de(
         Paginator.paginate(content, page.getTotalElements(), paging, baseUri), null);
@@ -280,6 +284,14 @@ public class OrderService {
   }
 
   private BigDecimal distanciaAte(UUID entregadorId, Pedido pedido) {
+    Estabelecimento loja =
+        estabelecimentoRepository.findById(pedido.getEstabelecimentoId()).orElse(null);
+    Distances.Percurso percurso = percursoAte(entregadorId, loja, pedido);
+    return percurso == null ? null : Distances.arredondarKm(percurso.maisLongeKm());
+  }
+
+  /** Mesma conta da vitrine ({@link OrderEligibilityService#percurso}); nulo sem posição. */
+  private Distances.Percurso percursoAte(UUID entregadorId, Estabelecimento loja, Pedido pedido) {
     if (entregadorId == null) {
       return null;
     }
@@ -287,12 +299,8 @@ public class OrderService {
     if (entregador == null || entregador.getLat() == null || entregador.getLongitude() == null) {
       return null;
     }
-    return Distances.arredondarKm(
-        Distances.haversineKm(
-            entregador.getLat(),
-            entregador.getLongitude(),
-            pedido.getDestLat(),
-            pedido.getDestLong()));
+    return OrderEligibilityService.percurso(
+        entregador.getLat(), entregador.getLongitude(), loja, pedido);
   }
 
   private OrderResponse toResponse(
@@ -379,7 +387,7 @@ public class OrderService {
   }
 
   private OrderSummary toSummary(
-      Pedido pedido, Estabelecimento estabelecimento, BigDecimal distanceKm) {
+      Pedido pedido, Estabelecimento estabelecimento, Distances.Percurso percurso) {
     OrderSummary.MerchantRef merchant = merchantRef(estabelecimento);
 
     Map<String, LinkRef> links = new LinkedHashMap<>();
@@ -397,7 +405,8 @@ public class OrderService {
         pedido.getNumero(),
         pedido.getStatus(),
         pedido.getFreteProposto(),
-        distanceKm,
+        percurso == null ? null : Distances.arredondarKm(percurso.maisLongeKm()),
+        percurso == null ? null : Distances.arredondarKm(percurso.totalKm()),
         merchant,
         // Vitrine mostra só o bairro: endereço completo é do pedido aceito, não da lista pública.
         DestinationResponse.apenasBairro(pedido.getDestBairro()),
