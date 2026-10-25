@@ -15,6 +15,7 @@ import com.uaiou.orders.dto.CourierRouteResponse.StopKind;
 import com.uaiou.orders.entity.Pedido;
 import com.uaiou.orders.repository.PedidoRepository;
 import com.uaiou.orders.service.MultiOrderRouteService;
+import com.uaiou.orders.service.OrderEligibilityService;
 import com.uaiou.routing.RoutingService;
 import com.uaiou.routing.RoutingService.Matrix;
 import com.uaiou.routing.RoutingService.Point;
@@ -50,6 +51,7 @@ class MultiOrderRouteServiceTest {
   private final EstabelecimentoRepository lojas = mock(EstabelecimentoRepository.class);
   private final RoutingService routing = mock(RoutingService.class);
   private final RouteCache cache = mock(RouteCache.class);
+  private final OrderEligibilityService elegibilidade = mock(OrderEligibilityService.class);
 
   private MultiOrderRouteService servico;
 
@@ -72,7 +74,8 @@ class MultiOrderRouteServiceTest {
                 Duration.ofDays(7),
                 Duration.ofMinutes(5),
                 3,
-                "© OpenStreetMap contributors"));
+                "© OpenStreetMap contributors"),
+            elegibilidade);
     Entregador entregador = mock(Entregador.class);
     when(entregador.getLat()).thenReturn(new BigDecimal("0"));
     when(entregador.getLongitude()).thenReturn(new BigDecimal("0"));
@@ -82,6 +85,60 @@ class MultiOrderRouteServiceTest {
     List<Estabelecimento> estabelecimentos = List.of(loja(LOJA_A, "1"), loja(LOJA_B, "3"));
     when(lojas.findAllById(anyList())).thenReturn(estabelecimentos);
     when(cache.find(anyString())).thenReturn(Optional.empty());
+  }
+
+  /**
+   * Simulação: o pedido da vitrine entra no roteiro sem ser aceito, e o acréscimo é a diferença
+   * para o roteiro de hoje — calculado do mesmo ponto, sem o candidato.
+   */
+  @Test
+  void aCandidateOrderIsSimulatedAndTheExtraDistanceIsReported() {
+    Pedido atual = pedido(LOJA_A, OrderStatus.ACCEPTED, "2", Instant.parse("2026-10-25T10:00:00Z"));
+    Pedido candidato = pedido(LOJA_B, OrderStatus.PUBLISHED, "4", null);
+    when(pedidos.findByEntregadorIdAndStatusIn(any(), anyList())).thenReturn(List.of(atual));
+    when(pedidos.findById(candidato.getId())).thenReturn(Optional.of(candidato));
+    when(elegibilidade.podeVer(ENTREGADOR, candidato)).thenReturn(true);
+    when(routing.matrix(anyList())).thenReturn(Optional.empty());
+    // 3 pontos = roteiro de hoje (origem, loja A, destino A); 5 = com o candidato.
+    when(routing.route(anyList()))
+        .thenAnswer(
+            chamada -> {
+              List<?> pontos = chamada.getArgument(0);
+              return Optional.of(
+                  pontos.size() == 3
+                      ? new Route(
+                          new BigDecimal("3.0"),
+                          Duration.ofMinutes(6),
+                          List.of(p("0"), p("1"), p("2")),
+                          List.of(),
+                          List.of(1))
+                      : new Route(
+                          new BigDecimal("7.5"),
+                          Duration.ofMinutes(15),
+                          List.of(p("0"), p("1"), p("2"), p("3"), p("4")),
+                          List.of(),
+                          List.of(1, 2, 3)));
+            });
+
+    CourierRouteResponse resposta = servico.get(ENTREGADOR, null, null, candidato.getId());
+
+    assertThat(resposta.candidateOrderId()).isEqualTo(candidato.getId());
+    assertThat(resposta.addedDistanceKm()).isEqualByComparingTo("4.5");
+    assertThat(resposta.addedDurationMinutes()).isEqualTo(9);
+    assertThat(resposta.stops()).extracting(Stop::orderId).contains(candidato.getId());
+  }
+
+  @Test
+  void aCandidateTheCourierCannotSeeIsRefused() {
+    Pedido candidato = pedido(LOJA_B, OrderStatus.PUBLISHED, "4", null);
+    when(pedidos.findByEntregadorIdAndStatusIn(any(), anyList())).thenReturn(List.of());
+    when(pedidos.findById(candidato.getId())).thenReturn(Optional.of(candidato));
+    when(elegibilidade.podeVer(ENTREGADOR, candidato)).thenReturn(false);
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(
+            () -> servico.get(ENTREGADOR, null, null, candidato.getId()))
+        .isInstanceOf(com.uaiou.shared.error.ForbiddenException.class);
+    verify(routing, never()).route(anyList());
   }
 
   @Test

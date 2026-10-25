@@ -21,6 +21,11 @@ import java.util.UUID;
  *     ordem é a de aceite, coletando antes de entregar.
  * @param stops paradas em ordem. {@code pointIndex} é o índice em {@code geometry} onde cada uma
  *     acontece; nulo sem trajeto ou quando o provedor não separou as pernas.
+ * @param candidateOrderId pedido da vitrine simulado com {@code ?withOrder=} — ainda não aceito. As
+ *     paradas dele vêm misturadas às demais, na ordem em que seriam feitas.
+ * @param addedDistanceKm quanto o pedido simulado acrescenta ao roteiro de hoje, por via. Nulo sem
+ *     simulação ou quando o roteiro de hoje não pôde ser calculado.
+ * @param addedDurationMinutes o mesmo acréscimo, em minutos.
  */
 public record CourierRouteResponse(
     boolean available,
@@ -31,6 +36,9 @@ public record CourierRouteResponse(
     List<Coordinate> geometry,
     List<Step> steps,
     List<Stop> stops,
+    UUID candidateOrderId,
+    BigDecimal addedDistanceKm,
+    Integer addedDurationMinutes,
     String attribution,
     @JsonProperty("_links") Map<String, LinkRef> links) {
 

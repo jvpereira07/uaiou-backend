@@ -13,6 +13,7 @@ import com.uaiou.routing.StopSequencer;
 import com.uaiou.routing.StopSequencer.Job;
 import com.uaiou.routing.config.RoutingProperties;
 import com.uaiou.routing.service.RouteCache;
+import com.uaiou.shared.error.ForbiddenException;
 import com.uaiou.shared.error.NotFoundException;
 import com.uaiou.shared.pagination.LinkRef;
 import com.uaiou.users.entity.Entregador;
@@ -20,6 +21,7 @@ import com.uaiou.users.entity.Estabelecimento;
 import com.uaiou.users.repository.EntregadorRepository;
 import com.uaiou.users.repository.EstabelecimentoRepository;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -60,6 +62,7 @@ public class MultiOrderRouteService {
   private final RoutingService routingService;
   private final RouteCache routeCache;
   private final RoutingProperties properties;
+  private final OrderEligibilityService eligibilityService;
 
   public MultiOrderRouteService(
       PedidoRepository pedidoRepository,
@@ -67,7 +70,9 @@ public class MultiOrderRouteService {
       EstabelecimentoRepository estabelecimentoRepository,
       RoutingService routingService,
       RouteCache routeCache,
-      RoutingProperties properties) {
+      RoutingProperties properties,
+      OrderEligibilityService eligibilityService) {
+    this.eligibilityService = eligibilityService;
     this.pedidoRepository = pedidoRepository;
     this.entregadorRepository = entregadorRepository;
     this.estabelecimentoRepository = estabelecimentoRepository;
@@ -81,15 +86,35 @@ public class MultiOrderRouteService {
 
   @Transactional(readOnly = true)
   public CourierRouteResponse get(UUID entregadorId, BigDecimal lat, BigDecimal lng) {
+    return get(entregadorId, lat, lng, null);
+  }
+
+  /**
+   * @param candidatoId pedido da vitrine a simular no roteiro, sem aceitá-lo — "como fica o meu
+   *     percurso se eu pegar este também?". A resposta traz o acréscimo em relação ao roteiro de
+   *     hoje. Só vale para pedido que o entregador pode ver (mesma regra do aceite); nada é
+   *     gravado.
+   */
+  @Transactional(readOnly = true)
+  public CourierRouteResponse get(
+      UUID entregadorId, BigDecimal lat, BigDecimal lng, UUID candidatoId) {
     Entregador entregador = entregadorRepository.findById(entregadorId).orElseThrow(this::notFound);
-    List<Pedido> pedidos =
+    List<Pedido> atuais =
         pedidoRepository.findByEntregadorIdAndStatusIn(entregadorId, EM_ANDAMENTO).stream()
             .sorted(
                 Comparator.comparing(
                     Pedido::getAceitoEm, Comparator.nullsLast(Comparator.<Instant>naturalOrder())))
             .toList();
+
+    Pedido candidato = candidato(entregadorId, candidatoId, atuais);
+    List<Pedido> pedidos = new ArrayList<>(atuais);
+    if (candidato != null) {
+      // Por último: na ordem de aceite (o recurso sem matriz), quem ainda não foi aceito vem
+      // depois.
+      pedidos.add(candidato);
+    }
     if (pedidos.isEmpty()) {
-      return indisponivel(CourierRouteResponse.NO_ACTIVE_ORDERS, false, List.of());
+      return indisponivel(CourierRouteResponse.NO_ACTIVE_ORDERS, false, List.of(), null);
     }
 
     Map<UUID, Estabelecimento> lojas =
@@ -97,9 +122,92 @@ public class MultiOrderRouteService {
             .findAllById(pedidos.stream().map(Pedido::getEstabelecimentoId).distinct().toList())
             .stream()
             .collect(Collectors.toMap(Estabelecimento::getUsuarioId, Function.identity()));
+    UUID idCandidato = candidato == null ? null : candidato.getId();
 
-    // Índice 0 é a origem; depois, por pedido, a loja (se ainda falta coletar e ela tem ponto) e
-    // o destino. A mesma lista serve à matriz e ao Job do sequenciador.
+    Point origem = coordenadaValida(lat, lng) ? new Point(lat, lng) : pontoDoEntregador(entregador);
+    if (origem == null) {
+      return indisponivel(
+          OrderRouteResponse.Route.COURIER_LOCATION_UNKNOWN,
+          false,
+          paradas(paradasDe(pedidos, lojas).paradas(), null),
+          idCandidato);
+    }
+
+    Calculo com = calcular(entregadorId, origem, pedidos, lojas);
+    if (com.rota().isEmpty()) {
+      return indisponivel(
+          OrderRouteResponse.Route.ROUTING_UNAVAILABLE,
+          com.otimizada(),
+          paradas(com.ordem(), null),
+          idCandidato);
+    }
+    RoutingService.Route trajeto = com.rota().get();
+
+    // O acréscimo compara com o roteiro de hoje, calculado do mesmo ponto. Sem entrega em andamento
+    // o roteiro de hoje é vazio e o acréscimo é o trajeto inteiro.
+    BigDecimal kmAMais = null;
+    Integer minAMais = null;
+    if (candidato != null) {
+      Optional<RoutingService.Route> hoje =
+          atuais.isEmpty()
+              ? Optional.of(
+                  new RoutingService.Route(BigDecimal.ZERO, Duration.ZERO, List.of(), List.of()))
+              : calcular(entregadorId, origem, atuais, lojas).rota();
+      if (hoje.isPresent()) {
+        kmAMais = trajeto.distanceKm().subtract(hoje.get().distanceKm()).max(BigDecimal.ZERO);
+        minAMais = Math.max(0, minutos(trajeto) - minutos(hoje.get()));
+      }
+    }
+
+    return new CourierRouteResponse(
+        true,
+        null,
+        com.otimizada(),
+        trajeto.distanceKm(),
+        minutos(trajeto),
+        trajeto.geometry().stream()
+            .map(ponto -> new OrderRouteResponse.Coordinate(ponto.lat(), ponto.lng()))
+            .toList(),
+        trajeto.steps().stream()
+            .map(
+                passo ->
+                    new OrderRouteResponse.Step(
+                        passo.instruction(), passo.distanceMeters(), passo.pointIndex()))
+            .toList(),
+        paradas(com.ordem(), indicesDasParadas(trajeto, com.ordem().size())),
+        idCandidato,
+        kmAMais,
+        minAMais,
+        properties.attribution(),
+        links());
+  }
+
+  /**
+   * O pedido a simular, validado. Já atribuído a este entregador ele já está no roteiro — o
+   * parâmetro vira no-op em vez de erro, para o app não precisar saber disso antes de perguntar.
+   */
+  private Pedido candidato(UUID entregadorId, UUID candidatoId, List<Pedido> atuais) {
+    if (candidatoId == null || atuais.stream().anyMatch(p -> p.getId().equals(candidatoId))) {
+      return null;
+    }
+    Pedido pedido =
+        pedidoRepository
+            .findById(candidatoId)
+            .orElseThrow(() -> new NotFoundException("ORDER_NOT_FOUND", "Pedido não encontrado."));
+    if (!eligibilityService.podeVer(entregadorId, pedido)) {
+      throw new ForbiddenException(
+          "ORDER_NOT_VISIBLE", "Este pedido não está visível para este entregador.");
+    }
+    return pedido;
+  }
+
+  private record Candidatas(List<Parada> paradas, List<Job> jobs) {}
+
+  /**
+   * Índice 0 é a origem; depois, por pedido, a loja (se ainda falta coletar e ela tem ponto) e o
+   * destino. A mesma lista serve à matriz e ao Job do sequenciador.
+   */
+  private Candidatas paradasDe(List<Pedido> pedidos, Map<UUID, Estabelecimento> lojas) {
     List<Parada> candidatas = new ArrayList<>();
     List<Job> jobs = new ArrayList<>();
     for (Pedido pedido : pedidos) {
@@ -119,52 +227,34 @@ public class MultiOrderRouteService {
               new Point(pedido.getDestLat(), pedido.getDestLong())));
       jobs.add(new Job(coleta, candidatas.size()));
     }
+    return new Candidatas(candidatas, jobs);
+  }
 
-    Point origem = coordenadaValida(lat, lng) ? new Point(lat, lng) : pontoDoEntregador(entregador);
-    if (origem == null) {
-      return indisponivel(
-          OrderRouteResponse.Route.COURIER_LOCATION_UNKNOWN, false, paradas(candidatas, null));
-    }
+  private record Calculo(
+      List<Parada> ordem, boolean otimizada, Optional<RoutingService.Route> rota) {}
 
+  private Calculo calcular(
+      UUID entregadorId, Point origem, List<Pedido> pedidos, Map<UUID, Estabelecimento> lojas) {
+    Candidatas candidatas = paradasDe(pedidos, lojas);
     List<Point> pontos = new ArrayList<>();
     pontos.add(origem);
-    candidatas.forEach(parada -> pontos.add(parada.ponto()));
+    candidatas.paradas().forEach(parada -> pontos.add(parada.ponto()));
 
-    Optional<List<Integer>> otima = ordenar(pontos, jobs);
-    boolean otimizada = otima.isPresent();
+    Optional<List<Integer>> otima = ordenar(pontos, candidatas.jobs());
     List<Parada> ordem =
         otima
-            .map(indices -> indices.stream().map(i -> candidatas.get(i - 1)).toList())
-            .orElse(candidatas);
+            .map(indices -> indices.stream().map(i -> candidatas.paradas().get(i - 1)).toList())
+            .orElse(candidatas.paradas());
 
     List<Point> waypoints = new ArrayList<>();
     waypoints.add(origem);
     ordem.forEach(parada -> waypoints.add(parada.ponto()));
+    return new Calculo(ordem, otima.isPresent(), resolver(entregadorId, ordem, waypoints));
+  }
 
-    Optional<RoutingService.Route> rota = resolver(entregadorId, ordem, waypoints);
-    if (rota.isEmpty()) {
-      return indisponivel(
-          OrderRouteResponse.Route.ROUTING_UNAVAILABLE, otimizada, paradas(ordem, null));
-    }
-    RoutingService.Route trajeto = rota.get();
-    return new CourierRouteResponse(
-        true,
-        null,
-        otimizada,
-        trajeto.distanceKm(),
-        (int) Math.round(trajeto.duration().toSeconds() / 60.0),
-        trajeto.geometry().stream()
-            .map(ponto -> new OrderRouteResponse.Coordinate(ponto.lat(), ponto.lng()))
-            .toList(),
-        trajeto.steps().stream()
-            .map(
-                passo ->
-                    new OrderRouteResponse.Step(
-                        passo.instruction(), passo.distanceMeters(), passo.pointIndex()))
-            .toList(),
-        paradas(ordem, indicesDasParadas(trajeto, ordem.size())),
-        properties.attribution(),
-        links());
+  /** Minutos, não segundos: precisão maior seria falsa numa estimativa sem trânsito real. */
+  private int minutos(RoutingService.Route rota) {
+    return (int) Math.round(rota.duration().toSeconds() / 60.0);
   }
 
   /** Um pedido só não tem o que ordenar — e não vale uma chamada de matriz. */
@@ -241,9 +331,22 @@ public class MultiOrderRouteService {
     return List.copyOf(paradas);
   }
 
-  private CourierRouteResponse indisponivel(String motivo, boolean otimizada, List<Stop> paradas) {
+  private CourierRouteResponse indisponivel(
+      String motivo, boolean otimizada, List<Stop> paradas, UUID candidatoId) {
     return new CourierRouteResponse(
-        false, motivo, otimizada, null, null, null, null, paradas, null, links());
+        false,
+        motivo,
+        otimizada,
+        null,
+        null,
+        null,
+        null,
+        paradas,
+        candidatoId,
+        null,
+        null,
+        null,
+        links());
   }
 
   private Point pontoDoEntregador(Entregador entregador) {
