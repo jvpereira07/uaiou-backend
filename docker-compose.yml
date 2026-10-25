@@ -91,17 +91,17 @@ services:
   # Provedor de rotas próprio (ROUTING_PROVIDER=osrm, ROUTING_BASE_URL=http://osrm:5000). Fora do
   # `up` padrão: só sobe com `--profile osrm`, e exige o mapa já pré-processado em ./osrm-data —
   #   curl -LO https://download.geofabrik.de/south-america/brazil/sudeste-latest.osm.pbf
-  #   docker run --rm -v ./osrm-data:/data osrm/osrm-backend:v5.27.1 osrm-extract -p /opt/car.lua /data/sudeste-latest.osm.pbf
-  #   docker run --rm -v ./osrm-data:/data osrm/osrm-backend:v5.27.1 osrm-partition /data/sudeste-latest.osrm
-  #   docker run --rm -v ./osrm-data:/data osrm/osrm-backend:v5.27.1 osrm-customize /data/sudeste-latest.osrm
+  #   docker run --rm -v ./osrm-data:/data ghcr.io/project-osrm/osrm-backend:v5.27.1 osrm-extract -p /opt/car.lua /data/sudeste-latest.osm.pbf
+  #   docker run --rm -v ./osrm-data:/data ghcr.io/project-osrm/osrm-backend:v5.27.1 osrm-partition /data/sudeste-latest.osrm
+  #   docker run --rm -v ./osrm-data:/data ghcr.io/project-osrm/osrm-backend:v5.27.1 osrm-customize /data/sudeste-latest.osrm
   osrm:
-    image: osrm/osrm-backend:v5.27.1
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
     profiles: ["osrm"]
-    command: osrm-routed --algorithm mld /data/sudeste-latest.osrm
+    command: osrm-routed --algorithm mld /data/${OSRM_MAP:-sudeste-latest}.osrm
     volumes:
       - ./osrm-data:/data
     ports:
-      - "5000:5000"
+      - "${OSRM_PORT:-5000}:5000"
 
 volumes:
   uaiou-postgres-data:
